@@ -56,6 +56,12 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
   const [selectedCells, setSelectedCells] = React.useState<SelectedCell[]>([]);
   const [loadingCells, setLoadingCells] = React.useState<LoadingCell[]>([]);
   const [error, setError] = React.useState<string | null>(null);
+  const [showAiPopup, setShowAiPopup] = React.useState(true);
+  const [columnAiConfirm, setColumnAiConfirm] = React.useState<{
+    columnId: number;
+    heading: string;
+    rowCount: number;
+  } | null>(null);
 
   // Update dbData when initialDbData changes
   React.useEffect(() => {
@@ -65,7 +71,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
   // Initialize visible columns when dbData changes
   React.useEffect(() => {
     if (dbData?.columns) {
-      const defaultVisibleColumns = ['first name', 'last name', 'website', 'company', 'person linkedin url'];
+      const defaultVisibleColumns = ['first name', 'last name', 'email', 'title', 'ismanager', 'website', 'company', 'person linkedin url'];
       const visibleColumnIds = dbData.columns
         .filter(col => defaultVisibleColumns.includes(col.heading.toLowerCase()))
         .map(col => col.id);
@@ -151,7 +157,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
       cellId,
       position: {
         x: rect.left + window.scrollX,
-        y: rect.top + window.scrollY, // Include scroll position for correct absolute positioning
+        y: rect.top + window.scrollY,
       },
     };
 
@@ -180,6 +186,8 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
       } else {
         setSelectedCells(prev => [...prev, cell]);
       }
+      // Show the AI popup for new selections
+      setShowAiPopup(true);
     }
   };
 
@@ -215,26 +223,59 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     const column = dbData?.columns.find(col => col.id === columnId);
     if (!column?.aiPrompt) return;
 
-    const originalColIndex = dbData!.columns.findIndex(c => c.id === columnId);
-    const cellsToProcess = dbData!.rows.map((row, rowIndex) => ({
-      cellId: dbData!.cellIds[rowIndex][originalColIndex],
-      rowIndex,
+    // Show confirmation dialog first
+    setColumnAiConfirm({
       columnId,
-    }));
+      heading: column.heading,
+      rowCount: dbData?.rows.length || 0
+    });
+  };
+
+  const handleConfirmColumnAi = async () => {
+    if (!columnAiConfirm || !dbData) return;
+
+    const column = dbData.columns.find(col => col.id === columnAiConfirm.columnId);
+    if (!column?.aiPrompt) return;
+
+    const originalColIndex = dbData.columns.findIndex(c => c.id === columnAiConfirm.columnId);
+    const cellsToProcess = dbData.rows.map((row, rowIndex) => {
+      // Create a map of column headings to values for this row
+      const rowData = Object.fromEntries(
+        dbData.columns.map((col, index) => [
+          col.heading.toLowerCase(),
+          row[index]
+        ])
+      );
+
+      // Replace placeholders in the prompt with actual values
+      const processedPrompt = column.aiPrompt!.replace(/{{(\w+)}}/g, (match, placeholder) => {
+        return rowData[placeholder.toLowerCase()] || match;
+      });
+
+      return {
+        cellId: dbData.cellIds[rowIndex][originalColIndex],
+        rowIndex,
+        columnId: columnAiConfirm.columnId,
+        prompt: processedPrompt,
+      };
+    });
 
     // Add all cells to loading state
-    setLoadingCells(prev => [...prev, ...cellsToProcess]);
+    setLoadingCells(prev => [...prev, ...cellsToProcess.map(cell => ({
+      columnId: cell.columnId,
+      rowIndex: cell.rowIndex
+    }))]);
 
     // Process all cells in parallel
     await Promise.all(
-      cellsToProcess.map(async ({ cellId, rowIndex }) => {
+      cellsToProcess.map(async ({ cellId, rowIndex, prompt }) => {
         try {
           const response = await fetch("/api/jobs", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               cellId,
-              prompt: column.aiPrompt,
+              prompt,
             }),
           });
 
@@ -242,16 +283,19 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
 
           const job = await response.json();
           // Start polling for this job
-          pollJobStatus(job.id, columnId, rowIndex);
+          pollJobStatus(job.id, columnAiConfirm.columnId, rowIndex);
         } catch (error) {
           console.error("Failed to process cell:", error);
           // Remove from loading state on error
           setLoadingCells(prev => 
-            prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
+            prev.filter(cell => !(cell.columnId === columnAiConfirm.columnId && cell.rowIndex === rowIndex))
           );
         }
       })
     );
+
+    // Close the confirmation dialog
+    setColumnAiConfirm(null);
   };
 
   const pollJobStatus = async (jobId: number, columnId: number, rowIndex: number) => {
@@ -414,7 +458,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         </div>
       </div>
 
-      {selectedCell && (
+      {selectedCell && showAiPopup && (
         <AiActionPopup
           columnId={selectedCell.columnId}
           rowIndex={selectedCell.rowIndex}
@@ -431,6 +475,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           onClose={() => {
             setSelectedCell(null);
             setSelectedCells([]);
+            setShowAiPopup(true);
           }}
           onUpdatePrompt={handleUpdatePrompt}
           onUpdateCell={(value: string) => {
@@ -446,6 +491,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           }}
           onStartLoading={(columnId, rowIndex) => {
             setLoadingCells(prev => [...prev, { columnId, rowIndex }]);
+            setShowAiPopup(false); // Hide the popup when jobs start
           }}
           selectedCellsCount={selectedCells.length}
         />
@@ -477,6 +523,22 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteColumn}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!columnAiConfirm} onOpenChange={(open) => !open && setColumnAiConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Run AI on entire column?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will run the AI prompt on all {columnAiConfirm?.rowCount} rows in the "{columnAiConfirm?.heading}" column. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmColumnAi}>Run AI</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
