@@ -6,22 +6,47 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:migrate": "dotenv -e .env.local -- npx drizzle-kit migrate",
+    "db:generate": "dotenv -e .env.local -- npx drizzle-kit generate",
+    "db:truncate": "dotenv -e .env.local -- tsx scripts/truncate-db.ts"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.2",
+    "@radix-ui/react-icons": "^1.3.2",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-slot": "^1.2.2",
+    "@t3-oss/env-nextjs": "^0.13.4",
+    "autoprefixer": "^10.4.21",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.43.1",
+    "lucide-react": "^0.510.0",
+    "next": "15.3.2",
+    "pg": "^8.15.6",
+    "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.3.2"
+    "shadcn-ui": "^0.9.5",
+    "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.15.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "dotenv": "^16.5.0",
+    "dotenv-cli": "^8.0.0",
+    "drizzle-kit": "^0.31.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4.1.6",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.19.4",
+    "tw-animate-css": "^1.2.9",
+    "typescript": "^5"
   }
 }

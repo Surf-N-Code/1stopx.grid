@@ -1,0 +1,77 @@
+<context>
+# Overview  
+[Provide a high-level overview of your product here. Explain what problem it solves, who it's for, and why it's valuable.]
+seogrid.Ai helps enrich data through online research, usage of external tools such as seo keyword analysis
+and others. It is a tabular based tool like google sheets. Users can upload CSV files or create new
+projects. Users can create additional columns for the data which seogrid.ai will populate with the
+information the user has asked the ai to generate for that column.
+
+# Core Features  
+[List and describe the main features of your product. For each feature, include:
+1. CSV Upload
+- What it does:
+User can upload a csv file and the tool reads the data (either comma or simcolon delimited)
+- Why it's important:
+To start off with some base data, a user can upload some data
+- How it works at a high level:
+The data read will be displayed in a grid format
+2. Grid / Tabular display of data
+- What it does:
+Grid display of the read csv data
+- Why it's important:
+- How it works at a high level:
+Columns can be sorted alphabetically and have a heading
+Alternative rows are highlighted for easier readibility
+3. Add column feature
+- What it does:
+User can add a new column. In the settings of the column user can specify what the name of the column
+will be. Additionally, an ai prompt can be stored, which the ai step later will use to populate the cells.
+- Why it's important:
+The tool is about data enrichment, so this feature is very important for a user to be able to enrich data
+- How it works at a high level:
+user adds column with heading. provides a prompt for the ai.
+4. Ai auto completion / population of new columns and cells
+- What it does:
+Once the user has added a column with an ai prompt. The ai should have the ability to auto populate the cells
+using the prompt provided by the user.
+- How it works high level
+Assume the user uploads a list of SEO topics. The new column added might be questions which can be derived
+for the provided list of topics, which might be interesting for seo. The ai should then populate the new columns 
+cells with interesting seo questions based on the SEO topic provided.
+5. Run all cells and autocomplete via ai or run individual cells
+- What it does:
+Either run the ai step for every cell within the column or run it only for the selected cells by the userT
+The user should therefore be able to single or multi select cells within the grid.
+
+# User Experience  
+- User personas
+SEo specialists who are looking for content for their Websites
+- Key user flows
+- UI/UX considerations
+Use shadcn
+</context>
+<PRD>
+# Technical Architecture  
+- System components
+Tailwind
+shadcn
+Typescript
+next js
+Agents should be built with mastra.ai documentation is here: https://mastra.ai/en/docs/agents/overview
+- Data models
+drizzle with postgres
+- APIs and integrations
+nextjs api
+- Infrastructure requirements
+
+
+# Logical Dependency Chain
+- Which features need to be built first (foundation)
+Grid / Tabular display of data
+then csv import to show the data in tabular format
+
+# Risks and Mitigations  
+- Technical challenges
+Ai agents to enrich the data required by the client should have a limit on their turns to limit the 
+expenses
+</PRD>
