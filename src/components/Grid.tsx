@@ -219,10 +219,22 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
 
   const handleUpdateCell = async (value: string, columnId: number, rowIndex: number) => {
     // Update the cell in the UI immediately
-    const newRows = [...dbData!.rows];
-    const originalColIndex = dbData!.columns.findIndex(c => c.id === columnId);
-    newRows[rowIndex][originalColIndex] = value;
-    setDbData(prev => prev ? { ...prev, rows: newRows } : null);
+    setDbData(prev => {
+      if (!prev) return prev;
+      
+      const newRows = [...prev.rows];
+      const originalColIndex = prev.columns.findIndex(c => c.id === columnId);
+      if (originalColIndex === -1) return prev;
+      
+      // Create a new row array to ensure React detects the change
+      newRows[rowIndex] = [...newRows[rowIndex]];
+      newRows[rowIndex][originalColIndex] = value;
+      
+      return {
+        ...prev,
+        rows: newRows
+      };
+    });
   };
 
   const handleRunAiOnColumn = async (columnId: number) => {
@@ -274,7 +286,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
 
     // Process all cells in parallel
     await Promise.all(
-      cellsToProcess.map(async ({ cellId, rowIndex, prompt }) => {
+      cellsToProcess.map(async ({ cellId, rowIndex, columnId, prompt }) => {
         try {
           const response = await fetch("/api/jobs", {
             method: "POST",
@@ -289,12 +301,12 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
 
           const job = await response.json();
           // Start polling for this job
-          pollJobStatus(job.id, columnAiConfirm.columnId, rowIndex);
+          pollJobStatus(job.id, columnId, rowIndex);
         } catch (error) {
           console.error("Failed to process cell:", error);
           // Remove from loading state on error
           setLoadingCells(prev => 
-            prev.filter(cell => !(cell.columnId === columnAiConfirm.columnId && cell.rowIndex === rowIndex))
+            prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
           );
         }
       })
@@ -549,17 +561,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
             setShowAiPopup(true);
           }}
           onUpdatePrompt={handleUpdatePrompt}
-          onUpdateCell={(value: string) => {
-            // Update all selected cells
-            selectedCells.forEach(cell => {
-              handleUpdateCell(value, cell.columnId, cell.rowIndex);
-              setLoadingCells(prev => 
-                prev.filter(loadingCell => 
-                  !(loadingCell.columnId === cell.columnId && loadingCell.rowIndex === cell.rowIndex)
-                )
-              );
-            });
-          }}
+          onUpdateCell={handleUpdateCell}
           onStartLoading={(columnId, rowIndex) => {
             setLoadingCells(prev => [...prev, { columnId, rowIndex }]);
           }}

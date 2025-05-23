@@ -21,7 +21,7 @@ interface AiActionPopupProps {
   position: { x: number; y: number } | null;
   onClose: () => void;
   onUpdatePrompt: (columnId: number, prompt: string) => Promise<void>;
-  onUpdateCell: (value: string) => void;
+  onUpdateCell: (value: string, columnId: number, rowIndex: number) => void;
   onStartLoading: (columnId: number, rowIndex: number) => void;
   selectedCellsCount: number;
 }
@@ -61,25 +61,26 @@ export function AiActionPopup({
           if (!response.ok) throw new Error('Failed to fetch job status');
           
           const job = await response.json();
-          const [columnId, rowIndex] = key.split('-').map(Number);
+          const [colId, rowIdx] = key.split('-').map(Number);
 
-          // If this is a completed job, update the cell with its result
+          // If this is a completed job, update the specific cell with its result
           if (job.status === 'completed') {
-            onUpdateCell(job.result);
+            // Call onUpdateCell with the specific cell coordinates and result
+            onUpdateCell(job.result, colId, rowIdx);
             completedJobs.add(key);
             // Remove loading state for this cell
             setLoadingCells(prev => 
               prev.filter(loadingCell => 
-                !(loadingCell.columnId === columnId && loadingCell.rowIndex === rowIndex)
+                !(loadingCell.columnId === colId && loadingCell.rowIndex === rowIdx)
               )
             );
           } else if (job.status === 'failed') {
-            setError(`Failed to process cell at row ${rowIndex + 1}`);
+            setError(`Failed to process cell at row ${rowIdx + 1}`);
             completedJobs.add(key);
             // Remove loading state for this cell
             setLoadingCells(prev => 
               prev.filter(loadingCell => 
-                !(loadingCell.columnId === columnId && loadingCell.rowIndex === rowIndex)
+                !(loadingCell.columnId === colId && loadingCell.rowIndex === rowIdx)
               )
             );
           } else {
@@ -88,11 +89,11 @@ export function AiActionPopup({
         } catch (err) {
           console.error(`Failed to poll job ${jobId}:`, err);
           completedJobs.add(key);
-          const [columnId, rowIndex] = key.split('-').map(Number);
+          const [colId, rowIdx] = key.split('-').map(Number);
           // Remove loading state for this cell
           setLoadingCells(prev => 
             prev.filter(loadingCell => 
-              !(loadingCell.columnId === columnId && loadingCell.rowIndex === rowIndex)
+              !(loadingCell.columnId === colId && loadingCell.rowIndex === rowIdx)
             )
           );
         }
@@ -140,15 +141,12 @@ export function AiActionPopup({
     try {
       // Create jobs for all selected cells
       let successfulJobs = 0;
-      console.log('selectedCells', selectedCells);
       const jobPromises = selectedCells.map(async (cell) => {
         // Process prompt with this cell's row data
         const processedPrompt = promptToUse.replace(/{{([^}]+)}}/g, (match, column) => {
           const columnLower = column.trim().toLowerCase().replace(/\\s+/g, ' ');
           return cell.rowData[columnLower] || match;
         });
-
-        console.log('processedPrompt', processedPrompt);
 
         try {
           const response = await fetch("/api/jobs", {
