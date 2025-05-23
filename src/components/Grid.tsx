@@ -463,14 +463,23 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           columnId={selectedCell.columnId}
           rowIndex={selectedCell.rowIndex}
           cellId={selectedCell.cellId}
-          selectedCells={selectedCells.map(cell => ({
-            columnId: cell.columnId,
-            rowIndex: cell.rowIndex,
-            cellId: cell.cellId
-          }))}
+          selectedCells={selectedCells.map(cell => {
+            // Get row data for this specific cell
+            const cellRowData = Object.fromEntries(
+              dbData.columns.map((col, index) => [
+                col.heading.toLowerCase(),
+                dbData.rows[cell.rowIndex][index]
+              ])
+            );
+            return {
+              columnId: cell.columnId,
+              rowIndex: cell.rowIndex,
+              cellId: cell.cellId,
+              rowData: cellRowData
+            };
+          })}
           aiPrompt={dbData?.columns.find(col => col.id === selectedCell.columnId)?.aiPrompt}
           columnHeading={dbData?.columns.find(col => col.id === selectedCell.columnId)?.heading || ""}
-          rowData={selectedRowData}
           position={selectedCell.position}
           onClose={() => {
             setSelectedCell(null);

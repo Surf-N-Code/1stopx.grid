@@ -8,6 +8,7 @@ interface SelectedCell {
   columnId: number;
   rowIndex: number;
   cellId: number;
+  rowData: Record<string, string>;
 }
 
 interface AiActionPopupProps {
@@ -17,7 +18,6 @@ interface AiActionPopupProps {
   selectedCells: SelectedCell[];
   aiPrompt?: string;
   columnHeading: string;
-  rowData: Record<string, string>;
   position: { x: number; y: number } | null;
   onClose: () => void;
   onUpdatePrompt: (columnId: number, prompt: string) => Promise<void>;
@@ -33,7 +33,6 @@ export function AiActionPopup({
   selectedCells,
   aiPrompt,
   columnHeading,
-  rowData,
   position,
   onClose,
   onUpdatePrompt,
@@ -144,7 +143,7 @@ export function AiActionPopup({
         // Process prompt with this cell's row data
         const processedPrompt = promptToUse.replace(/{{([^}]+)}}/g, (match, column) => {
           const columnLower = column.trim().toLowerCase().replace(/\\s+/g, ' ');
-          return rowData[columnLower] || match;
+          return cell.rowData[columnLower] || match;
         });
 
         console.log('processedPrompt', processedPrompt);
