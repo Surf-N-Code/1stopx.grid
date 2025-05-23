@@ -133,16 +133,22 @@ export function AiActionPopup({
       onStartLoading(cell.columnId, cell.rowIndex);
     });
 
-    try {
-      // Replace placeholders in the prompt with actual values
-      const promptToUse = aiPrompt || newPrompt;
-      const processedPrompt = promptToUse.replace(/{{(\w+)}}/g, (match, column) => {
-        return rowData[column.toLowerCase()] || match;
-      });
+    // Replace placeholders in the prompt with actual values
+    const promptToUse = aiPrompt || newPrompt;
 
+    try {
       // Create jobs for all selected cells
       let successfulJobs = 0;
+      console.log('selectedCells', selectedCells);
       const jobPromises = selectedCells.map(async (cell) => {
+        // Process prompt with this cell's row data
+        const processedPrompt = promptToUse.replace(/{{([^}]+)}}/g, (match, column) => {
+          const columnLower = column.trim().toLowerCase().replace(/\\s+/g, ' ');
+          return rowData[columnLower] || match;
+        });
+
+        console.log('processedPrompt', processedPrompt);
+
         try {
           const response = await fetch("/api/jobs", {
             method: "POST",
@@ -268,11 +274,18 @@ export function AiActionPopup({
       <Button
         size="sm"
         onClick={handleRunAi}
-        disabled={isLoading}
+        disabled={isLoading || jobIds.size > 0}
         className="whitespace-nowrap"
       >
         <Wand2 className="w-4 h-4 mr-2" />
-        Run AI {selectedCellsCount > 1 ? `(${selectedCellsCount} cells)` : ''}
+        {isLoading || jobIds.size > 0 ? (
+          <div className="flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-2" />
+            Processing...
+          </div>
+        ) : (
+          `Run AI ${selectedCellsCount > 1 ? `(${selectedCellsCount} cells)` : ''}`
+        )}
       </Button>
       {error && <p className="text-red-500 text-sm">{error}</p>}
     </div>

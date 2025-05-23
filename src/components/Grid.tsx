@@ -491,7 +491,6 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           }}
           onStartLoading={(columnId, rowIndex) => {
             setLoadingCells(prev => [...prev, { columnId, rowIndex }]);
-            setShowAiPopup(false); // Hide the popup when jobs start
           }}
           selectedCellsCount={selectedCells.length}
         />
