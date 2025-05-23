@@ -104,7 +104,7 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-xl">
-      <label className="block">
+      {/* <label className="block">
         <span className="font-medium">Upload CSV file</span>
         <input
           type="file"
@@ -113,7 +113,7 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
           onChange={onFileChange}
           disabled={loading || importing}
         />
-      </label>
+      </label> */}
       {fileName && <span className="text-xs text-gray-500">Selected: {fileName}</span>}
       {error && <div className="text-red-600 text-sm">{error}</div>}
       {loading && <div className="text-blue-600 text-sm">Parsing CSV...</div>}

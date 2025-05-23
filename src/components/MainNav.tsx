@@ -27,7 +27,7 @@ const components: { title: string; href: string; description: string }[] = [
   },
   {
     title: "Import",
-    href: "/import",
+    href: "/upload",
     description: "Import data from various sources.",
   },
 ];
@@ -88,7 +88,7 @@ export function MainNav() {
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <Link href="/docs" legacyBehavior passHref>
+          <Link href="/docs" passHref>
             <NavigationMenuLink className={navigationMenuTriggerStyle()}>
               Documentation
             </NavigationMenuLink>
