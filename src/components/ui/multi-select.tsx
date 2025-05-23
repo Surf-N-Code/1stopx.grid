@@ -57,15 +57,7 @@ export function MultiSelect({
             <span className="text-muted-foreground">{placeholder}</span>
           ) : (
             <div className="flex gap-1 flex-wrap overflow-hidden">
-              {selectedLabels.map((label) => (
-                <Badge
-                  variant="secondary"
-                  key={label}
-                  className="mr-1 mb-1 max-w-[calc(100%-20px)] truncate"
-                >
-                  {label}
-                </Badge>
-              ))}
+                <span>{value.length} selected</span>
             </div>
           )}
         </Button>
@@ -87,7 +79,6 @@ export function MultiSelect({
                     ? value.filter((v) => v !== option.value)
                     : [...value, option.value];
                   onValueChange(newValue);
-                  setOpen(false);
                 }}
               >
                 <Check

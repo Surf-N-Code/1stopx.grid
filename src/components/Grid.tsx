@@ -343,7 +343,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center relative z-50">
+      <div className="flex justify-between items-center relative">
         <MultiSelect
           value={visibleColumns}
           onValueChange={setVisibleColumns}
