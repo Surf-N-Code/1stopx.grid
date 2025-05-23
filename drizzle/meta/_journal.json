@@ -8,6 +8,27 @@
       "when": 1747074512713,
       "tag": "0000_watery_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1748000485714,
+      "tag": "0001_magical_pandemic",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748004254343,
+      "tag": "0002_typical_sandman",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1748004555075,
+      "tag": "0003_burly_prowler",
+      "breakpoints": true
     }
   ]
 }

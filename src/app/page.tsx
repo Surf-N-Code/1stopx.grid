@@ -1,12 +1,19 @@
 'use client';
 
 import Image from "next/image";
-import { Grid } from "./components/Grid";
+import { Grid } from "@/components/Grid";
 import { CSVUpload } from "./components/CSVUpload";
 import * as React from "react";
 
+interface Column {
+  id: number;
+  heading: string;
+  dataType: 'text' | 'number' | 'email' | 'url';
+  aiPrompt?: string;
+}
+
 export default function Home() {
-  const [tableData, setTableData] = React.useState<{ columns: { id: number; heading: string }[]; rows: string[][] } | null>(null);
+  const [tableData, setTableData] = React.useState<{ columns: Column[]; rows: string[][] } | null>(null);
   const [loadingTable, setLoadingTable] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -28,6 +35,11 @@ export default function Home() {
     }
   };
 
+  const handleColumnsChange = async () => {
+    if (!tableData) return;
+    handleImport({ tableId: tableData.columns[0].id, projectId: 0 });
+  };
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -46,7 +58,7 @@ export default function Home() {
           ) : error ? (
             <div className="text-red-600 text-sm">{error}</div>
           ) : (
-            <Grid dbData={tableData} />
+            <Grid dbData={tableData} tableId={tableData?.columns[0]?.id} onColumnsChange={handleColumnsChange} />
           )}
         </div>
         <div className="flex gap-4 items-center flex-col sm:flex-row">

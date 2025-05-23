@@ -21,9 +21,6 @@ function parseCSV(text: string): string[][] {
   
   // Heuristic: all rows have same length and at least 2 columns
   const colCount = rows[0]?.length || 0;
-  console.log("Number of columns:", colCount);
-  console.log("Number of rows:", rows.length);
-  console.log("First row:", rows[0]);
   
   return rows;
 }
@@ -44,7 +41,6 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
     try {
       const text = await file.text();
       const data = parseCSV(text);
-      console.log('Parsed data:', data);
       if (!data || data.length === 0 || data[0].length < 2) {
         setError('Could not parse CSV or not enough columns.');
         setPreview(null);

@@ -11,10 +11,17 @@ interface Project {
   name: string;
 }
 
+interface Column {
+  id: number;
+  heading: string;
+  dataType: 'text' | 'number' | 'email' | 'url' | 'boolean';
+  aiPrompt?: string;
+}
+
 export default function FullTableView() {
   const [projects, setProjects] = React.useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>('');
-  const [tableData, setTableData] = React.useState<{ columns: { id: number; heading: string }[]; rows: string[][] } | null>(null);
+  const [tableData, setTableData] = React.useState<{ columns: Column[]; rows: string[][] } | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -34,26 +41,26 @@ export default function FullTableView() {
     fetchProjects();
   }, []);
 
+  const fetchTableData = async () => {
+    if (!selectedProjectId) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/table/${selectedProjectId}?isProjectId=true`);
+      if (!response.ok) throw new Error('Failed to fetch table data');
+      const data = await response.json();
+      setTableData(data);
+    } catch (err) {
+      setError('Failed to load table data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch table data when project is selected
   React.useEffect(() => {
-    const fetchTableData = async () => {
-      if (!selectedProjectId) return;
-      
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`/api/table/${selectedProjectId}`);
-        if (!response.ok) throw new Error('Failed to fetch table data');
-        const data = await response.json();
-        setTableData(data);
-      } catch (err) {
-        setError('Failed to load table data');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchTableData();
   }, [selectedProjectId]);
 
@@ -84,7 +91,7 @@ export default function FullTableView() {
           ) : error ? (
             <div className="text-red-600 text-sm">{error}</div>
           ) : (
-            <Grid dbData={tableData} />
+            <Grid dbData={tableData} tableId={Number(selectedProjectId)} onColumnsChange={fetchTableData} />
           )}
         </div>
       </div>
