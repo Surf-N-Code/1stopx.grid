@@ -12,10 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { AddColumnModal } from "@/components/AddColumnModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Plus, Edit, Trash, Wand2 } from "lucide-react";
+import { MoreHorizontal, Plus, Edit, Trash, Wand2, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { AiActionPopup } from "@/components/AiActionPopup";
+import { convertToCSV } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface Column {
   id: number;
@@ -62,6 +66,8 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     heading: string;
     rowCount: number;
   } | null>(null);
+  const [showExportDialog, setShowExportDialog] = React.useState(false);
+  const [exportOption, setExportOption] = React.useState<'visible' | 'all'>('visible');
 
   // Update dbData when initialDbData changes
   React.useEffect(() => {
@@ -327,6 +333,50 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     }, 1000);
   };
 
+  const handleExportCSV = () => {
+    setShowExportDialog(true);
+  };
+
+  const handleExportConfirm = () => {
+    if (!dbData?.columns || !dbData.rows) return;
+    
+    let columnsToExport;
+    let rowsToExport;
+
+    if (exportOption === 'visible') {
+      // Get only visible columns and their data
+      const visibleColumnIndices = dbData.columns
+        .map((col, index) => ({ col, index }))
+        .filter(({ col }) => visibleColumns.includes(col.id));
+      
+      columnsToExport = visibleColumnIndices.map(({ col }) => col);
+      rowsToExport = dbData.rows.map(row => 
+        visibleColumnIndices.map(({ index }) => row[index])
+      );
+    } else {
+      // Export all columns
+      columnsToExport = dbData.columns;
+      rowsToExport = dbData.rows;
+    }
+    
+    // Convert to CSV
+    const csvContent = convertToCSV(columnsToExport, rowsToExport);
+    
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'export.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    setShowExportDialog(false);
+  };
+
   if (!dbData?.columns || !dbData.rows) {
     return null;
   }
@@ -344,16 +394,22 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center relative">
-        <MultiSelect
-          value={visibleColumns}
-          onValueChange={setVisibleColumns}
-          options={dbData.columns.map(col => ({
-            value: col.id,
-            label: col.heading
-          }))}
-          placeholder="Select visible columns"
-          className="w-[300px]"
-        />
+        <div className="flex items-center gap-4">
+          <MultiSelect
+            value={visibleColumns}
+            onValueChange={setVisibleColumns}
+            options={dbData.columns.map(col => ({
+              value: col.id,
+              label: col.heading
+            }))}
+            placeholder="Select visible columns"
+            className="w-[300px]"
+          />
+          <Button onClick={handleExportCSV} variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
         <Button onClick={() => setAddColumnOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Column
@@ -550,6 +606,45 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Export to CSV</DialogTitle>
+            <DialogDescription>
+              Choose which columns to include in the export
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <RadioGroup
+              value={exportOption}
+              onValueChange={(value: 'visible' | 'all') => setExportOption(value)}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="visible" id="visible" />
+                <Label htmlFor="visible">
+                  Export visible columns only ({visibleColumns.length} columns)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="all" id="all" />
+                <Label htmlFor="all">
+                  Export all columns ({dbData?.columns.length} columns)
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExportDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleExportConfirm}>
+              Export CSV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
