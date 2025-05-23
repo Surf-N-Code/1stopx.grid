@@ -311,6 +311,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         if (!response.ok) throw new Error('Failed to fetch job status');
         
         const job = await response.json();
+        // If this is a completed job, update the cell with its result
         if (job.status === 'completed') {
           clearInterval(pollInterval);
           handleUpdateCell(job.result, columnId, rowIndex);
@@ -324,13 +325,18 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           );
           setError(`Failed to process cell at row ${rowIndex + 1}`);
         }
+        // If the job is still pending, continue polling
       } catch (err) {
         clearInterval(pollInterval);
         setLoadingCells(prev => 
           prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
         );
+        console.error('Error polling job status:', err);
       }
     }, 1000);
+
+    // Clean up interval on component unmount
+    return () => clearInterval(pollInterval);
   };
 
   const handleExportCSV = () => {

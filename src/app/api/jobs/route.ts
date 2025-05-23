@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       });
 
       const result = completion.choices[0]?.message?.content || '';
+      console.log('result', result);
 
       // Update the job with the result
       const [updatedJob] = await db

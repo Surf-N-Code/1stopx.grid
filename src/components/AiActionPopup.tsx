@@ -63,6 +63,7 @@ export function AiActionPopup({
           const job = await response.json();
           const [columnId, rowIndex] = key.split('-').map(Number);
 
+          // If this is a completed job, update the cell with its result
           if (job.status === 'completed') {
             onUpdateCell(job.result);
             completedJobs.add(key);
@@ -115,6 +116,7 @@ export function AiActionPopup({
       }
     }, 1000);
 
+    // Clean up interval on component unmount
     return () => clearInterval(pollInterval);
   }, [jobIds, onUpdateCell, onClose]);
 
