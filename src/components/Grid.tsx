@@ -235,6 +235,11 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         rows: newRows
       };
     });
+
+    // Remove the loading state for this cell
+    setLoadingCells(prev => 
+      prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
+    );
   };
 
   const handleRunAiOnColumn = async (columnId: number) => {
