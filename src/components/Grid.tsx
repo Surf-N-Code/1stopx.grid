@@ -157,13 +157,14 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
 
   const handleCellClick = (columnId: number, rowIndex: number, cellId: number, event: React.MouseEvent) => {
     const rect = (event.target as HTMLElement).getBoundingClientRect();
+    
     const cell = {
       columnId,
       rowIndex,
       cellId,
       position: {
-        x: rect.left + window.scrollX,
-        y: rect.top + window.scrollY,
+        x: rect.left,
+        y: rect.top,
       },
     };
 

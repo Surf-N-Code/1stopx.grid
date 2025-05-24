@@ -256,37 +256,38 @@ export function AiActionPopup({
     <div
       style={{
         position: 'fixed',
-        top: `${position.y}px`,
-        left: `${position.x}px`,
-        transform: 'translateY(-100%)',
+        top: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
         zIndex: 50,
         backgroundColor: 'white',
-        borderRadius: '0.5rem',
+        borderRadius: '0.75rem',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         border: '1px solid #e5e7eb',
-        padding: '0.5rem',
+        padding: '0.75rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.5rem',
+        minWidth: '200px',
       }}
     >
       <Button
-        size="sm"
+        size="lg"
         onClick={handleRunAi}
         disabled={isLoading || jobIds.size > 0}
-        className="whitespace-nowrap"
+        className="whitespace-nowrap w-full"
       >
-        <Wand2 className="w-4 h-4 mr-2" />
+        <Wand2 className="w-5 h-5 mr-2" />
         {isLoading || jobIds.size > 0 ? (
           <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-2" />
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent mr-2" />
             Processing...
           </div>
         ) : (
           `Run AI ${selectedCellsCount > 1 ? `(${selectedCellsCount} cells)` : ''}`
         )}
       </Button>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
     </div>
   );
 } 
