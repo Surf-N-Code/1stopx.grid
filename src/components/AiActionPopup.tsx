@@ -141,7 +141,6 @@ export function AiActionPopup({
     const isManagementPrompt = await isManagementDetectionPrompt(promptToUse);
 
     console.log('isManagementPrompt', isManagementPrompt);
-    return;
     try {
       // Create jobs for all selected cells
       let successfulJobs = 0;
@@ -213,6 +212,8 @@ export function AiActionPopup({
         );
       });
     }
+    // Hide the popup after clicking the button
+    onClose();
   };
 
   const handleSavePrompt = async () => {

@@ -27,6 +27,7 @@ interface Column {
   heading: string;
   dataType: 'text' | 'number' | 'email' | 'url' | 'boolean';
   aiPrompt?: string;
+  isManagement?: boolean;
 }
 
 interface GridProps {
@@ -454,7 +455,12 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
                   .map((column) => (
                   <TableHead key={column.id} className="min-w-[150px] relative">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate">{column.heading}</span>
+                      <span className="truncate">
+                        {column.heading}
+                        {column.isManagement && (
+                          <span className="ml-2 text-xs text-blue-600">(Management)</span>
+                        )}
+                      </span>
                       <div className="flex items-center gap-1">
                         {column.aiPrompt && (
                           <Button
@@ -568,7 +574,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           onClose={() => {
             setSelectedCell(null);
             setSelectedCells([]);
-            setShowAiPopup(true);
+            setShowAiPopup(false);
           }}
           onUpdatePrompt={handleUpdatePrompt}
           onUpdateCell={handleUpdateCell}

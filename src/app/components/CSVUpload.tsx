@@ -5,6 +5,7 @@ import { useState } from 'react';
 // If not generated, run: npx shadcn-ui@latest add button
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import * as XLSX from 'xlsx';
 
 interface CSVUploadProps {
   onImport: (result: { tableId: number; projectId: number }) => void;
@@ -25,6 +26,26 @@ function parseCSV(text: string): string[][] {
   return rows;
 }
 
+function parseExcel(file: File): Promise<string[][]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+        resolve(jsonData);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsBinaryString(file);
+  });
+}
+
 export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,10 +60,17 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
     setLoading(true);
     setFileName(file.name);
     try {
-      const text = await file.text();
-      const data = parseCSV(text);
+      let data: string[][];
+      
+      if (file.name.endsWith('.xlsx')) {
+        data = await parseExcel(file);
+      } else {
+        const text = await file.text();
+        data = parseCSV(text);
+      }
+
       if (!data || data.length === 0 || data[0].length < 2) {
-        setError('Could not parse CSV or not enough columns.');
+        setError('Could not parse file or not enough columns.');
         setPreview(null);
         setFullData(null);
         setLoading(false);
@@ -66,8 +94,8 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
     setImportSuccess(false);
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.name.endsWith('.csv')) {
-      setError('Only .csv files are allowed.');
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
+      setError('Only .csv and .xlsx files are allowed.');
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -78,15 +106,19 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
   };
 
   const handleImport = async () => {
-    if (!fullData) return;
+    if (!fullData || !fileName) return;
     setImporting(true);
     setError(null);
     setImportSuccess(false);
     try {
+      const tableName = fileName.replace(/\.[^/.]+$/, ''); // Remove file extension
       const res = await fetch('/api/csv-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: fullData }),
+        body: JSON.stringify({ 
+          data: fullData,
+          tableName: tableName
+        }),
       });
       const result = await res.json();
       if (res.ok && result.success) {
@@ -104,19 +136,19 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-xl">
-      {/* <label className="block">
-        <span className="font-medium">Upload CSV file</span>
+      <label className="block">
+        <span className="font-medium">Upload CSV or Excel file</span>
         <input
           type="file"
-          accept=".csv"
+          accept=".csv,.xlsx"
           className="block mt-2"
           onChange={onFileChange}
           disabled={loading || importing}
         />
-      </label> */}
+      </label>
       {fileName && <span className="text-xs text-gray-500">Selected: {fileName}</span>}
       {error && <div className="text-red-600 text-sm">{error}</div>}
-      {loading && <div className="text-blue-600 text-sm">Parsing CSV...</div>}
+      {loading && <div className="text-blue-600 text-sm">Parsing file...</div>}
       {importing && <div className="text-blue-600 text-sm">Importing to database...</div>}
       {importSuccess && <div className="text-green-600 text-sm">Import successful!</div>}
       {preview && (

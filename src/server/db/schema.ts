@@ -36,6 +36,7 @@ export const columns = pgTable('columns', {
   dataType: dataTypeEnum('data_type').notNull().default('text'),
   aiPrompt: varchar('ai_prompt', { length: 1024 }), // optional
   source: sourceTypeEnum('source').notNull().default('manual'),
+  isManagement: boolean('is_management').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -47,7 +48,6 @@ export const cells = pgTable('cells', {
   rowIndex: integer('row_index').notNull(),
   value: varchar('value', { length: 2048 }),
   isAiGenerated: boolean('is_ai_generated').default(false).notNull(),
-  isManagement: boolean('is_management').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

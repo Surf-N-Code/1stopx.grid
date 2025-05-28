@@ -19,12 +19,57 @@ export const MANAGEMENT_KEYWORDS: string[] = [
 ];
 
 export function isInManagement(title: string): boolean {
-  if (!title) return false;
-  const normalizedTitle = title.toLowerCase();
-  return MANAGEMENT_KEYWORDS.some(keyword =>
-    normalizedTitle.includes(keyword.toLowerCase())
-  );
+if (!title) {
+  console.log('Title is empty or undefined.');
+  return false;
 }
+
+console.log('Original title:', title);
+const normalizedTitle = title.toLowerCase();
+console.log('Normalized title:', normalizedTitle);
+
+// First, normalize the title by replacing special characters with spaces
+// but keep forward slashes as they are important for role separation
+const normalizedTitleWithSpaces = normalizedTitle
+  .replace(/[^a-z0-9\s/]/g, ' ') // Replace special characters with spaces, keep forward slashes
+  .replace(/\s+/g, ' ') // Normalize multiple spaces into single space
+  .trim();
+
+console.log('Normalized title with spaces:', normalizedTitleWithSpaces);
+
+// Split the title by forward slashes to check each role separately
+const titleParts = normalizedTitleWithSpaces.split('/').map(part => part.trim());
+console.log('Title parts:', titleParts);
+
+// Check if any of the keywords match exactly within any part of the title
+const isManagement = MANAGEMENT_KEYWORDS.some(keyword => {
+  const normalizedKeyword = keyword.toLowerCase();
+  return titleParts.some(part => {
+    // Check if the part contains the exact keyword
+    // This ensures we match complete keywords, not partial words
+    const words = part.split(' ');
+    const keywordWords = normalizedKeyword.split(' ');
+
+    // For each possible starting position in the title
+    for (let i = 0; i <= words.length - keywordWords.length; i++) {
+      // Check if the next N words match the keyword exactly
+      const matches = keywordWords.every((keywordWord, j) => words[i + j] === keywordWord);
+      if (matches) {
+        console.log(`Match found: "${keyword}" in part "${part}"`);
+        return true;
+      }
+    }
+    return false;
+  });
+});
+
+console.log('Is in management:', isManagement);
+return isManagement;
+}
+
+// Test the function with the example title
+const testTitle = "Founder/Head of Event Coordination and Public Relations at Whats The Point Cologne";
+console.log('Test result:', isInManagement(testTitle));
 
 export async function isManagementDetectionPrompt(prompt: string): Promise<boolean> {
   try {
