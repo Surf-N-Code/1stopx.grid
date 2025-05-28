@@ -22,12 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Column {
   id: number;
   heading: string;
   dataType: 'text' | 'number' | 'email' | 'url' | 'boolean';
   aiPrompt?: string;
+  useWebSearch?: boolean;
 }
 
 interface AddColumnModalProps {
@@ -42,6 +44,7 @@ export function AddColumnModal({ open, onOpenChange, onSubmit, editColumn, exist
   const [heading, setHeading] = React.useState(editColumn?.heading || '');
   const [dataType, setDataType] = React.useState<Column['dataType']>(editColumn?.dataType || 'text');
   const [aiPrompt, setAiPrompt] = React.useState(editColumn?.aiPrompt || '');
+  const [useWebSearch, setUseWebSearch] = React.useState(editColumn?.useWebSearch || false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [highlightedText, setHighlightedText] = React.useState<JSX.Element | null>(null);
@@ -51,10 +54,12 @@ export function AddColumnModal({ open, onOpenChange, onSubmit, editColumn, exist
       setHeading(editColumn.heading);
       setDataType(editColumn.dataType);
       setAiPrompt(editColumn.aiPrompt || '');
+      setUseWebSearch(editColumn.useWebSearch || false);
     } else {
       setHeading('');
       setDataType('text');
       setAiPrompt('');
+      setUseWebSearch(false);
     }
   }, [editColumn]);
 
@@ -118,6 +123,7 @@ export function AddColumnModal({ open, onOpenChange, onSubmit, editColumn, exist
         heading,
         dataType,
         aiPrompt: aiPrompt || undefined,
+        useWebSearch,
       });
       onOpenChange(false);
     } catch (error) {
@@ -194,6 +200,16 @@ export function AddColumnModal({ open, onOpenChange, onSubmit, editColumn, exist
                   Available columns: {existingColumns.map(col => col.heading).join(', ')}
                 </div>
               )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="useWebSearch"
+                checked={useWebSearch}
+                onCheckedChange={(checked) => setUseWebSearch(checked as boolean)}
+              />
+              <Label htmlFor="useWebSearch" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Enable web search for AI responses
+              </Label>
             </div>
           </div>
           <DialogFooter>

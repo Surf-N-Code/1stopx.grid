@@ -6,7 +6,7 @@ import { eq, and, sql } from 'drizzle-orm';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { tableId, heading, dataType, aiPrompt, source = 'manual' } = body;
+    const { tableId, heading, dataType, aiPrompt, source = 'manual', useWebSearch = false } = body;
 
     if (!tableId || !heading || !dataType) {
       return NextResponse.json(
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
         dataType,
         aiPrompt: aiPrompt || null,
         source,
+        useWebSearch,
       })
       .returning();
 
@@ -70,9 +71,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(newColumn);
   } catch (error) {
-    console.error('Failed to add column:', error);
+    console.error('Failed to create column:', error);
     return NextResponse.json(
-      { error: 'Failed to add column' },
+      { error: 'Failed to create column' },
       { status: 500 }
     );
   }

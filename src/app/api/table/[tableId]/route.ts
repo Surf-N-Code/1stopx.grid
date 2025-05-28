@@ -44,6 +44,7 @@ export async function GET(
         heading: columns.heading,
         dataType: columns.dataType,
         aiPrompt: columns.aiPrompt,
+        useWebSearch: columns.useWebSearch,
       })
       .from(columns)
       .where(eq(columns.tableId, finalTableId))

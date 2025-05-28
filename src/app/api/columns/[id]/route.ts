@@ -9,7 +9,7 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const { heading, dataType, aiPrompt, source } = body;
+    const { heading, dataType, aiPrompt, source, useWebSearch } = body;
     const columnId = Number(params.id);
 
     if (!heading || !dataType) {
@@ -43,6 +43,7 @@ export async function PUT(
         columnId: newColumnId,
         aiPrompt: aiPrompt || null,
         source: source || 'manual',
+        useWebSearch: useWebSearch ?? false,
         updatedAt: new Date(),
       })
       .where(eq(columns.id, columnId))

@@ -1,0 +1,1 @@
+ALTER TABLE "columns" ALTER COLUMN "ai_prompt" TYPE text; 

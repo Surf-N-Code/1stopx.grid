@@ -28,6 +28,7 @@ interface Column {
   dataType: 'text' | 'number' | 'email' | 'url' | 'boolean';
   aiPrompt?: string;
   isManagement?: boolean;
+  useWebSearch?: boolean;
 }
 
 interface GridProps {
@@ -67,9 +68,12 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     columnId: number;
     heading: string;
     rowCount: number;
+    runOnAllPages?: boolean;
   } | null>(null);
   const [showExportDialog, setShowExportDialog] = React.useState(false);
   const [exportOption, setExportOption] = React.useState<'visible' | 'all'>('visible');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(100);
 
   // Update dbData when initialDbData changes
   React.useEffect(() => {
@@ -87,10 +91,19 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     }
   }, [dbData?.columns]);
 
+  React.useEffect(() => {
+    console.log('selectedCell', selectedCell);
+    const useWebSearch = selectedCell
+      ? dbData?.columns.find(col => col.id === selectedCell.columnId)
+      : false;
+    console.log('useWebSearch', useWebSearch);
+  }, [selectedCell]);
+
   const handleAddColumn = async (data: {
     heading: string;
     dataType: 'text' | 'number' | 'email' | 'url' | 'boolean';
     aiPrompt?: string;
+    useWebSearch?: boolean;
   }) => {
     if (!tableId) return;
 
@@ -118,6 +131,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     heading: string;
     dataType: 'text' | 'number' | 'email' | 'url' | 'boolean';
     aiPrompt?: string;
+    useWebSearch?: boolean;
   }) => {
     if (!editColumn) return;
 
@@ -253,7 +267,8 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     setColumnAiConfirm({
       columnId,
       heading: column.heading,
-      rowCount: dbData?.rows.length || 0
+      rowCount: dbData?.rows.length || 0,
+      runOnAllPages: undefined // Will be set by user in dialog
     });
   };
 
@@ -266,7 +281,12 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     const originalColIndex = dbData.columns.findIndex(c => c.id === columnAiConfirm.columnId);
     const isManagementPrompt = await isManagementDetectionPrompt(column.aiPrompt);
 
-    const cellsToProcess = dbData.rows.map((row, rowIndex) => {
+    // Determine which rows to process based on user selection
+    const rowsToProcess = columnAiConfirm.runOnAllPages 
+      ? dbData.rows 
+      : dbData.rows.slice(startIndex, endIndex);
+
+    const cellsToProcess = rowsToProcess.map((row, rowIndex) => {
       // Create a map of column headings to values for this row
       const rowData = Object.fromEntries(
         dbData.columns.map((col, index) => [
@@ -280,9 +300,14 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         return rowData[placeholder.toLowerCase()] || match;
       });
 
+      // Calculate the actual row index in the full dataset
+      const actualRowIndex = columnAiConfirm.runOnAllPages 
+        ? rowIndex 
+        : startIndex + rowIndex;
+
       return {
-        cellId: dbData.cellIds[rowIndex][originalColIndex],
-        rowIndex,
+        cellId: dbData.cellIds[actualRowIndex][originalColIndex],
+        rowIndex: actualRowIndex,
         columnId: columnAiConfirm.columnId,
         prompt: processedPrompt,
       };
@@ -410,6 +435,14 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     return null;
   }
 
+  // Calculate pagination values
+  const totalRows = dbData.rows.length;
+  const totalPages = Math.ceil(totalRows / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalRows);
+  const currentRows = dbData.rows.slice(startIndex, endIndex);
+  const currentCellIds = dbData.cellIds.slice(startIndex, endIndex);
+
   // Create a map of column headings to values for the selected row
   const selectedRowData = selectedCell
     ? Object.fromEntries(
@@ -503,23 +536,23 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {dbData.rows.map((row, rowIndex) => (
+              {currentRows.map((row, rowIndex) => (
                 <TableRow key={rowIndex}>
                   {dbData.columns
                     .filter(col => visibleColumns.includes(col.id))
                     .map((column, colIndex) => {
                       const originalColIndex = dbData.columns.findIndex(c => c.id === column.id);
                       const cell = row[originalColIndex];
-                      const cellId = dbData.cellIds[rowIndex][originalColIndex];
+                      const cellId = currentCellIds[rowIndex][originalColIndex];
                       const isLoading = loadingCells.some(
                         loadingCell => 
                           loadingCell.columnId === column.id && 
-                          loadingCell.rowIndex === rowIndex
+                          loadingCell.rowIndex === startIndex + rowIndex
                       );
                       const isSelected = selectedCells.some(
                         selectedCell => 
                           selectedCell.columnId === column.id && 
-                          selectedCell.rowIndex === rowIndex
+                          selectedCell.rowIndex === startIndex + rowIndex
                       );
                       
                       return (
@@ -529,7 +562,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
                             isSelected ? "bg-blue-50" : ""
                           }`}
                           onClick={(e) =>
-                            handleCellClick(column.id, rowIndex, cellId, e)
+                            handleCellClick(column.id, startIndex + rowIndex, cellId, e)
                           }
                         >
                           {isLoading ? (
@@ -545,6 +578,65 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
               ))}
             </TableBody>
           </Table>
+        </div>
+      </div>
+
+      {/* Add pagination controls */}
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {endIndex} of {totalRows} rows
+          </p>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1); // Reset to first page when changing page size
+            }}
+            className="h-8 rounded-md border border-gray-300 px-2 text-sm"
+          >
+            <option value={50}>50 rows</option>
+            <option value={100}>100 rows</option>
+            <option value={200}>200 rows</option>
+            <option value={500}>500 rows</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            First
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            Last
+          </Button>
         </div>
       </div>
 
@@ -583,6 +675,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           }}
           selectedCellsCount={selectedCells.length}
           onPollJobStatus={pollJobStatus}
+          useWebSearch={dbData?.columns.find(col => col.id === selectedCell.columnId)?.useWebSearch}
         />
       )}
 
@@ -619,15 +712,41 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
       <AlertDialog open={!!columnAiConfirm} onOpenChange={(open) => !open && setColumnAiConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Run AI on entire column?</AlertDialogTitle>
+            <AlertDialogTitle>Run AI on column?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will run the AI prompt on all {columnAiConfirm?.rowCount} rows in the "{columnAiConfirm?.heading}" column. 
-              This action cannot be undone.
+              {columnAiConfirm?.runOnAllPages === undefined ? (
+                <div className="space-y-4">
+                  <p>Choose whether to run the AI prompt on:</p>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setColumnAiConfirm(prev => prev ? { ...prev, runOnAllPages: true } : null)}
+                    >
+                      All {columnAiConfirm?.rowCount} rows
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setColumnAiConfirm(prev => prev ? { ...prev, runOnAllPages: false } : null)}
+                    >
+                      Current page only ({endIndex - startIndex} rows)
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p>
+                  This will run the AI prompt on {columnAiConfirm.runOnAllPages ? 'all' : 'the current page\'s'} rows in the "{columnAiConfirm?.heading}" column. 
+                  This action cannot be undone.
+                </p>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmColumnAi}>Run AI</AlertDialogAction>
+            {columnAiConfirm?.runOnAllPages !== undefined && (
+              <AlertDialogAction onClick={handleConfirmColumnAi}>
+                Run AI
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

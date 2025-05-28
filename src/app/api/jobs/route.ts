@@ -3,16 +3,21 @@ import { db } from '@/server/db';
 import { jobs, cells } from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { Anthropic } from '@anthropic-ai/sdk';
 import { isInManagement } from '@/lib/utils/management-detection';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { cellId, prompt, isManagementDetection } = body;
+    const { cellId, prompt, isManagementDetection, useWebSearch } = body;
 
     if (!cellId || !prompt) {
       return NextResponse.json(
@@ -38,23 +43,43 @@ export async function POST(request: Request) {
         result = isManagementDetection;
       } else {
         // Process with AI
-      console.log('Processing with AI:', { prompt, cellId });
-      const completion = await openai.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant that provides concise, direct answers.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        model: "gpt-4.1",
-      });
-
-      const result = completion.choices[0]?.message?.content || '';
-      console.log('result', result);
+        console.log('Processing with AI:', { prompt, cellId, useWebSearch });
+        
+        if (useWebSearch) {
+          // Use Claude with web search
+          const response = await anthropic.messages.create({
+            model: "claude-3-7-sonnet-latest",
+            max_tokens: 1024,
+            messages: [
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            tools: [{
+              type: "web_search_20250305",
+              name: "web_search",
+              max_uses: 5
+            }]
+          });
+          result = response.content[0].type === 'text' ? response.content[0].text : '';
+        } else {
+          // Use OpenAI
+          const completion = await openai.chat.completions.create({
+            messages: [
+              {
+                role: "system",
+                content: "You are a helpful assistant that provides concise, direct answers.",
+              },
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            model: "gpt-4.1",
+          });
+          result = completion.choices[0]?.message?.content || '';
+        }
       }
       
       // Update the job with the result

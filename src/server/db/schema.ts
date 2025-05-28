@@ -34,9 +34,10 @@ export const columns = pgTable('columns', {
   heading: varchar('heading', { length: 255 }).notNull(),
   columnId: varchar('column_id', { length: 512 }).notNull(),
   dataType: dataTypeEnum('data_type').notNull().default('text'),
-  aiPrompt: varchar('ai_prompt', { length: 1024 }), // optional
+  aiPrompt: text('ai_prompt'), // optional, unlimited length
   source: sourceTypeEnum('source').notNull().default('manual'),
   isManagement: boolean('is_management').default(false).notNull(),
+  useWebSearch: boolean('use_web_search').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

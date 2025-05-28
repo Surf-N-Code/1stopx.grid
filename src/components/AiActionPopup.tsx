@@ -26,6 +26,7 @@ interface AiActionPopupProps {
   onStartLoading: (columnId: number, rowIndex: number) => void;
   selectedCellsCount: number;
   onPollJobStatus: (jobId: number, columnId: number, rowIndex: number) => void;
+  useWebSearch?: boolean;
 }
 
 export function AiActionPopup({
@@ -42,6 +43,7 @@ export function AiActionPopup({
   onStartLoading,
   selectedCellsCount,
   onPollJobStatus,
+  useWebSearch = false,
 }: AiActionPopupProps) {
   const [showPromptDialog, setShowPromptDialog] = React.useState(!aiPrompt);
   const [newPrompt, setNewPrompt] = React.useState(aiPrompt || "");
@@ -49,6 +51,7 @@ export function AiActionPopup({
   const [error, setError] = React.useState<string | null>(null);
   const [jobIds, setJobIds] = React.useState<Map<string, number>>(new Map());
 
+  console.log('useWebSearch', useWebSearch);
   const handleRunAi = async () => {
     if (!aiPrompt && !newPrompt) {
       setShowPromptDialog(true);
@@ -86,6 +89,7 @@ export function AiActionPopup({
               cellId: cell.cellId,
               prompt: processedPrompt,
               isManagementDetection: isManagementPrompt,
+              useWebSearch,
             }),
           });
 
