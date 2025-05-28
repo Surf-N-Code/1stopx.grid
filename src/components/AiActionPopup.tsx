@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Wand2 } from "lucide-react";
+import { isManagementDetectionPrompt } from "@/lib/utils/management-detection";
 
 interface SelectedCell {
   columnId: number;
@@ -137,7 +138,10 @@ export function AiActionPopup({
 
     // Replace placeholders in the prompt with actual values
     const promptToUse = aiPrompt || newPrompt;
+    const isManagementPrompt = await isManagementDetectionPrompt(promptToUse);
 
+    console.log('isManagementPrompt', isManagementPrompt);
+    return;
     try {
       // Create jobs for all selected cells
       let successfulJobs = 0;
@@ -155,6 +159,7 @@ export function AiActionPopup({
             body: JSON.stringify({
               cellId: cell.cellId,
               prompt: processedPrompt,
+              isManagementDetection: isManagementPrompt,
             }),
           });
 

@@ -47,6 +47,7 @@ export const cells = pgTable('cells', {
   rowIndex: integer('row_index').notNull(),
   value: varchar('value', { length: 2048 }),
   isAiGenerated: boolean('is_ai_generated').default(false).notNull(),
+  isManagement: boolean('is_management').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

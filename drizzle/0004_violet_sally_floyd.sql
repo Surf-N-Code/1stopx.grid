@@ -1,0 +1,1 @@
+ALTER TABLE "cells" ADD COLUMN "is_management" boolean DEFAULT false NOT NULL;

@@ -3,6 +3,7 @@ import { db } from '@/server/db';
 import { jobs, cells } from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { isInManagement } from '@/lib/utils/management-detection';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -11,7 +12,7 @@ const openai = new OpenAI({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { cellId, prompt } = body;
+    const { cellId, prompt, isManagementDetection } = body;
 
     if (!cellId || !prompt) {
       return NextResponse.json(
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
             content: prompt,
           },
         ],
-        model: "gpt-4o-mini",
+        model: "gpt-4.1",
       });
 
       const result = completion.choices[0]?.message?.content || '';
@@ -61,12 +62,13 @@ export async function POST(request: Request) {
         .where(eq(jobs.id, job.id))
         .returning();
 
-      // Update the cell with the AI-generated value
+      // Update the cell with the AI-generated value and management status
       await db
         .update(cells)
         .set({
           value: result,
           isAiGenerated: true,
+          isManagement: isManagementDetection ? isInManagement(result) : undefined,
           updatedAt: new Date(),
         })
         .where(eq(cells.id, cellId));

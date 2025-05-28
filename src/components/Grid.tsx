@@ -20,6 +20,7 @@ import { convertToCSV } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { isManagementDetectionPrompt } from "@/lib/utils/management-detection";
 
 interface Column {
   id: number;
@@ -262,6 +263,8 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     if (!column?.aiPrompt) return;
 
     const originalColIndex = dbData.columns.findIndex(c => c.id === columnAiConfirm.columnId);
+    const isManagementPrompt = await isManagementDetectionPrompt(column.aiPrompt);
+
     const cellsToProcess = dbData.rows.map((row, rowIndex) => {
       // Create a map of column headings to values for this row
       const rowData = Object.fromEntries(
@@ -300,6 +303,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
             body: JSON.stringify({
               cellId,
               prompt,
+              isManagementDetection: isManagementPrompt,
             }),
           });
 

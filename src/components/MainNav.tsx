@@ -88,11 +88,11 @@ export function MainNav() {
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <Link href="/docs" passHref>
-            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+          <NavigationMenuLink asChild>
+            <Link href="/docs" className={navigationMenuTriggerStyle()}>
               Documentation
-            </NavigationMenuLink>
-          </Link>
+            </Link>
+          </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
