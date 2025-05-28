@@ -1,9 +1,3 @@
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export const MANAGEMENT_KEYWORDS: string[] = [
   // General
   'CEO', 'Chief Executive Officer', 'Founder', 'Co-Founder', 'Gründer', 'Gründerin',
@@ -34,29 +28,20 @@ export function isInManagement(title: string): boolean {
 
 export async function isManagementDetectionPrompt(prompt: string): Promise<boolean> {
   try {
-    const completion = await openai.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are an AI assistant that determines if a prompt is specifically designed to detect management positions in job titles.
-Consider the following criteria:
-1. The prompt should be focused on identifying management roles
-2. It should look for executive titles, leadership positions, or management roles
-3. It should return a boolean result (true/false)
-4. It should not be a general prompt about job titles or roles
-
-Respond with only "true" if the prompt is specifically for management detection, or "false" if it's not.`
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      model: "gpt-4.1",
+    const response = await fetch('/api/management-detection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
     });
 
-    const result = completion.choices[0]?.message?.content?.toLowerCase().trim();
-    return result === "true";
+    if (!response.ok) {
+      throw new Error('Failed to detect management prompt');
+    }
+
+    const data = await response.json();
+    return data.isManagementDetection;
   } catch (error) {
     console.error("Error detecting management prompt:", error);
     return false;
