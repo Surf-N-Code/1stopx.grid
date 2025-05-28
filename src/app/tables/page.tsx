@@ -125,6 +125,7 @@ export default function FullTableView() {
               customColumns={customColumns}
               onSelectColumn={handleCustomColumnSelect}
               currentProjectId={Number(selectedProjectId)}
+              onColumnAdded={fetchTableData}
             />
           )}
         </div>

@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
   try {
-    const { columnId, targetProjectId } = await req.json();
+    const { columnId, targetProjectId, targetTableId } = await req.json();
 
     // Fetch the source column
     const sourceColumn = await db
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         useWebSearch: sourceColumn[0].useWebSearch,
         source: 'manual',
         projectId: targetProjectId,
-        tableId: sourceColumn[0].tableId, // This will be updated by the table component
+        tableId: targetTableId, // This will be updated by the table component
         columnId: `${sourceColumn[0].heading}_${Date.now()}`, // Ensure unique columnId
       })
       .returning();

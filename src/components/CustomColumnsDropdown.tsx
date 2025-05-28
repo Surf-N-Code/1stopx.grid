@@ -16,8 +16,14 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Info, Plus } from 'lucide-react';
+import { Info, Plus, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface CustomColumn {
   id: number;
@@ -56,22 +62,22 @@ export function CustomColumnsDropdown({
     }
   };
 
-  const handleAddColumn = async () => {
-    if (!selectedColumn || !currentProjectId) return;
-
-    setIsAdding(true);
+  const handleAddColumn = async (column: CustomColumn) => {
     try {
       const response = await fetch('/api/columns/copy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          columnId: selectedColumn.id,
+          sourceColumnId: column.id,
           targetProjectId: currentProjectId,
+          targetTableId: column.tableId,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to copy column');
+        throw new Error('Failed to add column');
       }
 
       toast.success('Column added successfully');
@@ -79,8 +85,6 @@ export function CustomColumnsDropdown({
     } catch (error) {
       console.error('Error adding column:', error);
       toast.error('Failed to add column');
-    } finally {
-      setIsAdding(false);
     }
   };
 
@@ -193,7 +197,7 @@ export function CustomColumnsDropdown({
             <Button
               variant="outline"
               size="icon"
-              onClick={handleAddColumn}
+              onClick={() => handleAddColumn(selectedColumn)}
               disabled={isAdding}
             >
               <Plus className="h-4 w-4" />
