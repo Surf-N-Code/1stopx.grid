@@ -57,9 +57,35 @@ export const cells = pgTable('cells', {
 export const jobs = pgTable('jobs', {
   id: serial('id').primaryKey(),
   cellId: integer('cell_id').notNull().references(() => cells.id),
-  prompt: varchar('prompt', { length: 2048 }).notNull(),
+  prompt: text('prompt').notNull(),
   result: text('result'),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Bulk Jobs table
+export const bulkJobs = pgTable('bulk_jobs', {
+  id: serial('id').primaryKey(),
+  columnId: integer('column_id').notNull().references(() => columns.id),
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  totalCells: integer('total_cells').notNull(),
+  processedCells: integer('processed_cells').notNull().default(0),
+  successfulCells: integer('successful_cells').notNull().default(0),
+  failedCells: integer('failed_cells').notNull().default(0),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Bulk Job Cells table to track individual cells in a bulk job
+export const bulkJobCells = pgTable('bulk_job_cells', {
+  id: serial('id').primaryKey(),
+  bulkJobId: integer('bulk_job_id').notNull().references(() => bulkJobs.id),
+  cellId: integer('cell_id').notNull().references(() => cells.id),
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  result: text('result'),
   error: text('error'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

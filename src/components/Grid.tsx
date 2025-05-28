@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Table,
   TableBody,
@@ -8,19 +8,49 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { AddColumnModal } from "@/components/AddColumnModal";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Plus, Edit, Trash, Wand2, Download } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MultiSelect } from "@/components/ui/multi-select";
-import { AiActionPopup } from "@/components/AiActionPopup";
-import { convertToCSV } from "@/lib/utils";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { isManagementDetectionPrompt } from "@/lib/utils/management-detection";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { AddColumnModal } from '@/components/AddColumnModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  MoreHorizontal,
+  Plus,
+  Edit,
+  Trash,
+  Wand2,
+  Download,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MultiSelect } from '@/components/ui/multi-select';
+import { AiActionPopup } from '@/components/AiActionPopup';
+import { convertToCSV } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { isManagementDetectionPrompt } from '@/lib/utils/management-detection';
+import { toast } from 'react-hot-toast';
+import { BulkProcessProgressModal } from './BulkProcessProgressModal';
 
 interface Column {
   id: number;
@@ -53,13 +83,21 @@ interface LoadingCell {
   rowIndex: number;
 }
 
-export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridProps) {
+export function Grid({
+  dbData: initialDbData,
+  tableId,
+  onColumnsChange,
+}: GridProps) {
   const [dbData, setDbData] = React.useState(initialDbData);
   const [addColumnOpen, setAddColumnOpen] = React.useState(false);
   const [editColumn, setEditColumn] = React.useState<Column | null>(null);
-  const [deleteColumnId, setDeleteColumnId] = React.useState<number | null>(null);
+  const [deleteColumnId, setDeleteColumnId] = React.useState<number | null>(
+    null
+  );
   const [visibleColumns, setVisibleColumns] = React.useState<number[]>([]);
-  const [selectedCell, setSelectedCell] = React.useState<SelectedCell | null>(null);
+  const [selectedCell, setSelectedCell] = React.useState<SelectedCell | null>(
+    null
+  );
   const [selectedCells, setSelectedCells] = React.useState<SelectedCell[]>([]);
   const [loadingCells, setLoadingCells] = React.useState<LoadingCell[]>([]);
   const [error, setError] = React.useState<string | null>(null);
@@ -71,9 +109,13 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     runOnAllPages?: boolean;
   } | null>(null);
   const [showExportDialog, setShowExportDialog] = React.useState(false);
-  const [exportOption, setExportOption] = React.useState<'visible' | 'all'>('visible');
+  const [exportOption, setExportOption] = React.useState<'visible' | 'all'>(
+    'visible'
+  );
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(100);
+  const [bulkJobId, setBulkJobId] = React.useState<number | null>(null);
+  const [showBulkModal, setShowBulkModal] = React.useState(false);
 
   // Update dbData when initialDbData changes
   React.useEffect(() => {
@@ -83,10 +125,21 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
   // Initialize visible columns when dbData changes
   React.useEffect(() => {
     if (dbData?.columns) {
-      const defaultVisibleColumns = ['first name', 'last name', 'email', 'title', 'ismanager', 'website', 'company', 'person linkedin url'];
+      const defaultVisibleColumns = [
+        'first name',
+        'last name',
+        'email',
+        'title',
+        'ismanager',
+        'website',
+        'company',
+        'person linkedin url',
+      ];
       const visibleColumnIds = dbData.columns
-        .filter(col => defaultVisibleColumns.includes(col.heading.toLowerCase()))
-        .map(col => col.id);
+        .filter((col) =>
+          defaultVisibleColumns.includes(col.heading.toLowerCase())
+        )
+        .map((col) => col.id);
       setVisibleColumns(visibleColumnIds);
     }
   }, [dbData?.columns]);
@@ -94,7 +147,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
   React.useEffect(() => {
     console.log('selectedCell', selectedCell);
     const useWebSearch = selectedCell
-      ? dbData?.columns.find(col => col.id === selectedCell.columnId)
+      ? dbData?.columns.find((col) => col.id === selectedCell.columnId)
       : false;
     console.log('useWebSearch', useWebSearch);
   }, [selectedCell]);
@@ -113,7 +166,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, tableId }),
       });
-      
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || 'Failed to add column');
@@ -141,7 +194,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || 'Failed to update column');
@@ -171,9 +224,14 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     }
   };
 
-  const handleCellClick = (columnId: number, rowIndex: number, cellId: number, event: React.MouseEvent) => {
+  const handleCellClick = (
+    columnId: number,
+    rowIndex: number,
+    cellId: number,
+    event: React.MouseEvent
+  ) => {
     const rect = (event.target as HTMLElement).getBoundingClientRect();
-    
+
     const cell = {
       columnId,
       rowIndex,
@@ -186,20 +244,32 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
 
     // Check if the cell is already selected
     const isAlreadySelected = selectedCells.some(
-      selected => selected.columnId === columnId && selected.rowIndex === rowIndex
+      (selected) =>
+        selected.columnId === columnId && selected.rowIndex === rowIndex
     );
 
     if (isAlreadySelected) {
       // If cell is already selected, remove it from selection
-      setSelectedCells(prev => prev.filter(
-        selected => !(selected.columnId === columnId && selected.rowIndex === rowIndex)
-      ));
+      setSelectedCells((prev) =>
+        prev.filter(
+          (selected) =>
+            !(selected.columnId === columnId && selected.rowIndex === rowIndex)
+        )
+      );
       // If we're removing the primary selected cell, update it to the last remaining selected cell
-      if (selectedCell?.columnId === columnId && selectedCell?.rowIndex === rowIndex) {
+      if (
+        selectedCell?.columnId === columnId &&
+        selectedCell?.rowIndex === rowIndex
+      ) {
         const remainingCells = selectedCells.filter(
-          selected => !(selected.columnId === columnId && selected.rowIndex === rowIndex)
+          (selected) =>
+            !(selected.columnId === columnId && selected.rowIndex === rowIndex)
         );
-        setSelectedCell(remainingCells.length > 0 ? remainingCells[remainingCells.length - 1] : null);
+        setSelectedCell(
+          remainingCells.length > 0
+            ? remainingCells[remainingCells.length - 1]
+            : null
+        );
       }
     } else {
       // If cell is not selected, add it to selection and make it the primary cell
@@ -207,7 +277,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
       if (selectedCells.length === 0) {
         setSelectedCells([cell]);
       } else {
-        setSelectedCells(prev => [...prev, cell]);
+        setSelectedCells((prev) => [...prev, cell]);
       }
       // Show the AI popup for new selections
       setShowAiPopup(true);
@@ -221,7 +291,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aiPrompt: prompt }),
       });
-      
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || 'Failed to update prompt');
@@ -234,33 +304,39 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     }
   };
 
-  const handleUpdateCell = async (value: string, columnId: number, rowIndex: number) => {
+  const handleUpdateCell = async (
+    value: string,
+    columnId: number,
+    rowIndex: number
+  ) => {
     // Update the cell in the UI immediately
-    setDbData(prev => {
+    setDbData((prev) => {
       if (!prev) return prev;
-      
+
       const newRows = [...prev.rows];
-      const originalColIndex = prev.columns.findIndex(c => c.id === columnId);
+      const originalColIndex = prev.columns.findIndex((c) => c.id === columnId);
       if (originalColIndex === -1) return prev;
-      
+
       // Create a new row array to ensure React detects the change
       newRows[rowIndex] = [...newRows[rowIndex]];
       newRows[rowIndex][originalColIndex] = value;
-      
+
       return {
         ...prev,
-        rows: newRows
+        rows: newRows,
       };
     });
 
     // Remove the loading state for this cell
-    setLoadingCells(prev => 
-      prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
+    setLoadingCells((prev) =>
+      prev.filter(
+        (cell) => !(cell.columnId === columnId && cell.rowIndex === rowIndex)
+      )
     );
   };
 
   const handleRunAiOnColumn = async (columnId: number) => {
-    const column = dbData?.columns.find(col => col.id === columnId);
+    const column = dbData?.columns.find((col) => col.id === columnId);
     if (!column?.aiPrompt) return;
 
     // Show confirmation dialog first
@@ -268,22 +344,28 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
       columnId,
       heading: column.heading,
       rowCount: dbData?.rows.length || 0,
-      runOnAllPages: undefined // Will be set by user in dialog
+      runOnAllPages: undefined, // Will be set by user in dialog
     });
   };
 
   const handleConfirmColumnAi = async () => {
     if (!columnAiConfirm || !dbData) return;
 
-    const column = dbData.columns.find(col => col.id === columnAiConfirm.columnId);
+    const column = dbData.columns.find(
+      (col) => col.id === columnAiConfirm.columnId
+    );
     if (!column?.aiPrompt) return;
 
-    const originalColIndex = dbData.columns.findIndex(c => c.id === columnAiConfirm.columnId);
-    const isManagementPrompt = await isManagementDetectionPrompt(column.aiPrompt);
+    const originalColIndex = dbData.columns.findIndex(
+      (c) => c.id === columnAiConfirm.columnId
+    );
+    const isManagementPrompt = await isManagementDetectionPrompt(
+      column.aiPrompt
+    );
 
     // Determine which rows to process based on user selection
-    const rowsToProcess = columnAiConfirm.runOnAllPages 
-      ? dbData.rows 
+    const rowsToProcess = columnAiConfirm.runOnAllPages
+      ? dbData.rows
       : dbData.rows.slice(startIndex, endIndex);
 
     const cellsToProcess = rowsToProcess.map((row, rowIndex) => {
@@ -291,18 +373,31 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
       const rowData = Object.fromEntries(
         dbData.columns.map((col, index) => [
           col.heading.toLowerCase(),
-          row[index]
+          row[index],
         ])
       );
 
       // Replace placeholders in the prompt with actual values
-      const processedPrompt = column.aiPrompt!.replace(/{{(\w+)}}/g, (match, placeholder) => {
-        return rowData[placeholder.toLowerCase()] || match;
-      });
+      const columnDataForPlaceholders: string[] = [];
+      const processedPrompt = column.aiPrompt!.replace(
+        /{{([^}]+)}}/g,
+        (match, column) => {
+          // Store the placeholder text
+          const placeholderText = match;
+          // Clean up the column name: trim whitespace and convert to lowercase
+          const columnLower = column.trim().toLowerCase();
+          // Get the value from rowData, or keep the original placeholder if not found
+          const value = rowData[columnLower];
+          columnDataForPlaceholders.push(value);
+          return value !== undefined ? value : placeholderText;
+        }
+      );
+
+      const rowDataForIsManagementCheck = columnDataForPlaceholders.join('\n');
 
       // Calculate the actual row index in the full dataset
-      const actualRowIndex = columnAiConfirm.runOnAllPages 
-        ? rowIndex 
+      const actualRowIndex = columnAiConfirm.runOnAllPages
+        ? rowIndex
         : startIndex + rowIndex;
 
       return {
@@ -310,74 +405,101 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         rowIndex: actualRowIndex,
         columnId: columnAiConfirm.columnId,
         prompt: processedPrompt,
+        rowDataForIsManagementCheck,
       };
     });
 
-    // Add all cells to loading state
-    setLoadingCells(prev => [...prev, ...cellsToProcess.map(cell => ({
-      columnId: cell.columnId,
-      rowIndex: cell.rowIndex
-    }))]);
+    try {
+      // Show the progress modal immediately
+      setShowBulkModal(true);
 
-    // Process all cells in parallel
-    await Promise.all(
-      cellsToProcess.map(async ({ cellId, rowIndex, columnId, prompt }) => {
-        try {
-          const response = await fetch("/api/jobs", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cellId,
-              prompt,
-              isManagementDetection: isManagementPrompt,
-            }),
-          });
+      // Show toast notification
+      toast.loading('Starting bulk AI processing...', {
+        id: 'bulk-processing',
+      });
 
-          if (!response.ok) throw new Error("Failed to run AI");
+      const response = await fetch('/api/jobs/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cellsToProcess,
+          columnId: columnAiConfirm.columnId,
+          isManagementPrompt,
+          useWebSearch: column.useWebSearch,
+          userEmail: 'grid@1stopx.com',
+        }),
+      });
 
-          const job = await response.json();
-          // Start polling for this job
-          pollJobStatus(job.id, columnId, rowIndex);
-        } catch (error) {
-          console.error("Failed to process cell:", error);
-          // Remove from loading state on error
-          setLoadingCells(prev => 
-            prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
-          );
-        }
-      })
-    );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to start bulk processing');
+      }
+
+      const data = await response.json();
+      // Set the job ID for the progress modal
+      setBulkJobId(data.jobId);
+
+      // Update toast with success message
+      toast.success(
+        `Bulk processing started for ${data.totalCells} cells. You will receive an email when complete.`,
+        { id: 'bulk-processing' }
+      );
+    } catch (error) {
+      console.error('Failed to start bulk processing:', error);
+      // Update toast with error message
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to start bulk processing',
+        { id: 'bulk-processing' }
+      );
+      // Close the progress modal if there's an error
+      setShowBulkModal(false);
+    }
 
     // Close the confirmation dialog
     setColumnAiConfirm(null);
   };
 
-  const pollJobStatus = async (jobId: number, columnId: number, rowIndex: number) => {
+  const pollJobStatus = async (
+    jobId: number,
+    columnId: number,
+    rowIndex: number
+  ) => {
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`/api/jobs/${jobId}`);
         if (!response.ok) throw new Error('Failed to fetch job status');
-        
+
         const job = await response.json();
         // If this is a completed job, update the cell with its result
         if (job.status === 'completed') {
           clearInterval(pollInterval);
           handleUpdateCell(job.result, columnId, rowIndex);
-          setLoadingCells(prev => 
-            prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
+          setLoadingCells((prev) =>
+            prev.filter(
+              (cell) =>
+                !(cell.columnId === columnId && cell.rowIndex === rowIndex)
+            )
           );
         } else if (job.status === 'failed') {
           clearInterval(pollInterval);
-          setLoadingCells(prev => 
-            prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
+          setLoadingCells((prev) =>
+            prev.filter(
+              (cell) =>
+                !(cell.columnId === columnId && cell.rowIndex === rowIndex)
+            )
           );
           setError(`Failed to process cell at row ${rowIndex + 1}`);
         }
         // If the job is still pending, continue polling
       } catch (err) {
         clearInterval(pollInterval);
-        setLoadingCells(prev => 
-          prev.filter(cell => !(cell.columnId === columnId && cell.rowIndex === rowIndex))
+        setLoadingCells((prev) =>
+          prev.filter(
+            (cell) =>
+              !(cell.columnId === columnId && cell.rowIndex === rowIndex)
+          )
         );
         console.error('Error polling job status:', err);
       }
@@ -393,7 +515,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
 
   const handleExportConfirm = () => {
     if (!dbData?.columns || !dbData.rows) return;
-    
+
     let columnsToExport;
     let rowsToExport;
 
@@ -402,9 +524,9 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
       const visibleColumnIndices = dbData.columns
         .map((col, index) => ({ col, index }))
         .filter(({ col }) => visibleColumns.includes(col.id));
-      
+
       columnsToExport = visibleColumnIndices.map(({ col }) => col);
-      rowsToExport = dbData.rows.map(row => 
+      rowsToExport = dbData.rows.map((row) =>
         visibleColumnIndices.map(({ index }) => row[index])
       );
     } else {
@@ -412,10 +534,10 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
       columnsToExport = dbData.columns;
       rowsToExport = dbData.rows;
     }
-    
+
     // Convert to CSV
     const csvContent = convertToCSV(columnsToExport, rowsToExport);
-    
+
     // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -427,7 +549,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     setShowExportDialog(false);
   };
 
@@ -448,7 +570,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
     ? Object.fromEntries(
         dbData.columns.map((col, index) => [
           col.heading.toLowerCase(),
-          dbData.rows[selectedCell.rowIndex][index]
+          dbData.rows[selectedCell.rowIndex][index],
         ])
       )
     : {};
@@ -460,9 +582,9 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           <MultiSelect
             value={visibleColumns}
             onValueChange={setVisibleColumns}
-            options={dbData.columns.map(col => ({
+            options={dbData.columns.map((col) => ({
               value: col.id,
-              label: col.heading
+              label: col.heading,
             }))}
             placeholder="Select visible columns"
             className="w-[300px]"
@@ -484,85 +606,102 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
             <TableHeader>
               <TableRow>
                 {dbData.columns
-                  .filter(col => visibleColumns.includes(col.id))
+                  .filter((col) => visibleColumns.includes(col.id))
                   .map((column) => (
-                  <TableHead key={column.id} className="min-w-[150px] relative">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate">
-                        {column.heading}
-                        {column.isManagement && (
-                          <span className="ml-2 text-xs text-blue-600">(Management)</span>
-                        )}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {column.aiPrompt && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleRunAiOnColumn(column.id)}
-                          >
-                            <Wand2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
+                    <TableHead
+                      key={column.id}
+                      className="min-w-[150px] relative"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate">
+                          {column.heading}
+                          {column.isManagement && (
+                            <span className="ml-2 text-xs text-blue-600">
+                              (Management)
+                            </span>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {column.aiPrompt && (
+                            <Button
+                              variant="ghost"
                               size="icon"
-                              className="h-8 w-8 p-0 flex-shrink-0"
+                              className="h-6 w-6"
+                              onClick={() => handleRunAiOnColumn(column.id)}
                             >
-                              <MoreHorizontal className="h-4 w-4" />
+                              <Wand2 className="h-3 w-3" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-[160px]">
-                            <DropdownMenuItem onClick={() => setEditColumn(column)}>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => setDeleteColumnId(column.id)}
-                              className="text-red-600"
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 p-0 flex-shrink-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="w-[160px]"
                             >
-                              <Trash className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem
+                                onClick={() => setEditColumn(column)}
+                              >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeleteColumnId(column.id)}
+                                className="text-red-600"
+                              >
+                                <Trash className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                    </div>
-                  </TableHead>
-                ))}
+                    </TableHead>
+                  ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentRows.map((row, rowIndex) => (
                 <TableRow key={rowIndex}>
                   {dbData.columns
-                    .filter(col => visibleColumns.includes(col.id))
+                    .filter((col) => visibleColumns.includes(col.id))
                     .map((column, colIndex) => {
-                      const originalColIndex = dbData.columns.findIndex(c => c.id === column.id);
+                      const originalColIndex = dbData.columns.findIndex(
+                        (c) => c.id === column.id
+                      );
                       const cell = row[originalColIndex];
                       const cellId = currentCellIds[rowIndex][originalColIndex];
                       const isLoading = loadingCells.some(
-                        loadingCell => 
-                          loadingCell.columnId === column.id && 
+                        (loadingCell) =>
+                          loadingCell.columnId === column.id &&
                           loadingCell.rowIndex === startIndex + rowIndex
                       );
                       const isSelected = selectedCells.some(
-                        selectedCell => 
-                          selectedCell.columnId === column.id && 
+                        (selectedCell) =>
+                          selectedCell.columnId === column.id &&
                           selectedCell.rowIndex === startIndex + rowIndex
                       );
-                      
+
                       return (
                         <TableCell
                           key={colIndex}
                           className={`truncate whitespace-nowrap py-2 cursor-pointer relative ${
-                            isSelected ? "bg-blue-50" : ""
+                            isSelected ? 'bg-blue-50' : ''
                           }`}
                           onClick={(e) =>
-                            handleCellClick(column.id, startIndex + rowIndex, cellId, e)
+                            handleCellClick(
+                              column.id,
+                              startIndex + rowIndex,
+                              cellId,
+                              e
+                            )
                           }
                         >
                           {isLoading ? (
@@ -613,7 +752,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
             Previous
@@ -624,7 +763,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >
             Next
@@ -645,23 +784,29 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           columnId={selectedCell.columnId}
           rowIndex={selectedCell.rowIndex}
           cellId={selectedCell.cellId}
-          selectedCells={selectedCells.map(cell => {
+          selectedCells={selectedCells.map((cell) => {
             // Get row data for this specific cell
             const cellRowData = Object.fromEntries(
               dbData.columns.map((col, index) => [
                 col.heading.toLowerCase(),
-                dbData.rows[cell.rowIndex][index]
+                dbData.rows[cell.rowIndex][index],
               ])
             );
             return {
               columnId: cell.columnId,
               rowIndex: cell.rowIndex,
               cellId: cell.cellId,
-              rowData: cellRowData
+              rowData: cellRowData,
             };
           })}
-          aiPrompt={dbData?.columns.find(col => col.id === selectedCell.columnId)?.aiPrompt}
-          columnHeading={dbData?.columns.find(col => col.id === selectedCell.columnId)?.heading || ""}
+          aiPrompt={
+            dbData?.columns.find((col) => col.id === selectedCell.columnId)
+              ?.aiPrompt
+          }
+          columnHeading={
+            dbData?.columns.find((col) => col.id === selectedCell.columnId)
+              ?.heading || ''
+          }
           position={selectedCell.position}
           onClose={() => {
             setSelectedCell(null);
@@ -671,11 +816,14 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           onUpdatePrompt={handleUpdatePrompt}
           onUpdateCell={handleUpdateCell}
           onStartLoading={(columnId, rowIndex) => {
-            setLoadingCells(prev => [...prev, { columnId, rowIndex }]);
+            setLoadingCells((prev) => [...prev, { columnId, rowIndex }]);
           }}
           selectedCellsCount={selectedCells.length}
           onPollJobStatus={pollJobStatus}
-          useWebSearch={dbData?.columns.find(col => col.id === selectedCell.columnId)?.useWebSearch}
+          useWebSearch={
+            dbData?.columns.find((col) => col.id === selectedCell.columnId)
+              ?.useWebSearch
+          }
         />
       )}
 
@@ -694,22 +842,31 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
         existingColumns={dbData.columns}
       />
 
-      <AlertDialog open={!!deleteColumnId} onOpenChange={(open) => !open && setDeleteColumnId(null)}>
+      <AlertDialog
+        open={!!deleteColumnId}
+        onOpenChange={(open) => !open && setDeleteColumnId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the column and all its data. This action cannot be undone.
+              This will permanently delete the column and all its data. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteColumn}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteColumn}>
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!columnAiConfirm} onOpenChange={(open) => !open && setColumnAiConfirm(null)}>
+      <AlertDialog
+        open={!!columnAiConfirm}
+        onOpenChange={(open) => !open && setColumnAiConfirm(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Run AI on column?</AlertDialogTitle>
@@ -720,13 +877,21 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
                   <div className="flex flex-col gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => setColumnAiConfirm(prev => prev ? { ...prev, runOnAllPages: true } : null)}
+                      onClick={() =>
+                        setColumnAiConfirm((prev) =>
+                          prev ? { ...prev, runOnAllPages: true } : null
+                        )
+                      }
                     >
                       All {columnAiConfirm?.rowCount} rows
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => setColumnAiConfirm(prev => prev ? { ...prev, runOnAllPages: false } : null)}
+                      onClick={() =>
+                        setColumnAiConfirm((prev) =>
+                          prev ? { ...prev, runOnAllPages: false } : null
+                        )
+                      }
                     >
                       Current page only ({endIndex - startIndex} rows)
                     </Button>
@@ -734,8 +899,10 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
                 </div>
               ) : (
                 <p>
-                  This will run the AI prompt on {columnAiConfirm.runOnAllPages ? 'all' : 'the current page\'s'} rows in the "{columnAiConfirm?.heading}" column. 
-                  This action cannot be undone.
+                  This will run the AI prompt on{' '}
+                  {columnAiConfirm.runOnAllPages ? 'all' : "the current page's"}{' '}
+                  rows in the "{columnAiConfirm?.heading}" column. This action
+                  cannot be undone.
                 </p>
               )}
             </AlertDialogDescription>
@@ -762,7 +929,9 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
           <div className="py-4">
             <RadioGroup
               value={exportOption}
-              onValueChange={(value: 'visible' | 'all') => setExportOption(value)}
+              onValueChange={(value: 'visible' | 'all') =>
+                setExportOption(value)
+              }
               className="flex flex-col gap-4"
             >
               <div className="flex items-center space-x-2">
@@ -780,15 +949,26 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
             </RadioGroup>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowExportDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowExportDialog(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleExportConfirm}>
-              Export CSV
-            </Button>
+            <Button onClick={handleExportConfirm}>Export CSV</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk process progress modal */}
+      {bulkJobId && (
+        <BulkProcessProgressModal
+          jobId={bulkJobId}
+          isOpen={showBulkModal}
+          onClose={() => setShowBulkModal(false)}
+          onComplete={onColumnsChange}
+        />
+      )}
     </div>
   );
-} 
+}

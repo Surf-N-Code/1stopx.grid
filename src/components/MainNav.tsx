@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import * as React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -11,37 +11,42 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
 
 const components: { title: string; href: string; description: string }[] = [
   {
-    title: "Tables",
-    href: "/tables",
-    description: "View and manage your data tables.",
+    title: 'Tables',
+    href: '/tables',
+    description: 'View and manage your data tables.',
   },
   {
-    title: "Grid",
-    href: "/grid",
-    description: "Interactive data grid with AI capabilities.",
+    title: 'Grid',
+    href: '/grid',
+    description: 'Interactive data grid with AI capabilities.',
   },
   {
-    title: "Import",
-    href: "/upload",
-    description: "Import data from various sources.",
+    title: 'Import',
+    href: '/upload',
+    description: 'Import data from various sources.',
+  },
+  {
+    title: 'Merge CSV',
+    href: '/upload?mode=merge',
+    description: 'Merge multiple CSV or Excel files while handling headers.',
   },
 ];
 
 const settings: { title: string; href: string; description: string }[] = [
   {
-    title: "Team",
-    href: "/team",
-    description: "Manage your team members and permissions.",
+    title: 'Team',
+    href: '/team',
+    description: 'Manage your team members and permissions.',
   },
   {
-    title: "Settings",
-    href: "/settings",
-    description: "Configure application settings and preferences.",
+    title: 'Settings',
+    href: '/settings',
+    description: 'Configure application settings and preferences.',
   },
 ];
 
@@ -100,8 +105,8 @@ export function MainNav() {
 }
 
 const ListItem = React.forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a"> & { active?: boolean }
+  React.ElementRef<'a'>,
+  React.ComponentPropsWithoutRef<'a'> & { active?: boolean }
 >(({ className, title, children, active, ...props }, ref) => {
   return (
     <li>
@@ -109,8 +114,8 @@ const ListItem = React.forwardRef<
         <a
           ref={ref}
           className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            active && "bg-accent",
+            'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+            active && 'bg-accent',
             className
           )}
           {...props}
@@ -123,4 +128,4 @@ const ListItem = React.forwardRef<
       </NavigationMenuLink>
     </li>
   );
-}); 
+});

@@ -10,12 +10,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import * as XLSX from 'xlsx';
+import { MergeFilesUpload } from '@/components/MergeFilesUpload';
+import { useSearchParams } from 'next/navigation';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 export default function UploadPage() {
+  const searchParams = useSearchParams();
+  const isMergeMode = searchParams.get('mode') === 'merge';
   const [preview, setPreview] = React.useState<string[][]>([]);
   const [fullData, setFullData] = React.useState<string[][]>([]);
   const [error, setError] = React.useState<string | null>(null);
@@ -32,7 +36,9 @@ export default function UploadPage() {
           const workbook = XLSX.read(data, { type: 'binary' });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
+          }) as string[][];
           resolve(jsonData);
         } catch (error) {
           reject(error);
@@ -43,7 +49,9 @@ export default function UploadPage() {
     });
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -62,20 +70,24 @@ export default function UploadPage() {
     setError(null);
     try {
       let rows: string[][];
-      
+
       if (file.name.endsWith('.xlsx')) {
         rows = await parseExcel(file);
       } else {
         const text = await file.text();
         // Handle both comma and semicolon separators
         const separator = text.includes(';') ? ';' : ',';
-        rows = text.split(/\r?\n/).map(line => 
-          line.split(separator).map(cell => cell.trim().replace(/^"|"$/g, ''))
-        );
+        rows = text
+          .split(/\r?\n/)
+          .map((line) =>
+            line
+              .split(separator)
+              .map((cell) => cell.trim().replace(/^"|"$/g, ''))
+          );
       }
 
       // Filter out empty rows
-      rows = rows.filter(row => row.some(cell => cell.length > 0));
+      rows = rows.filter((row) => row.some((cell) => cell.length > 0));
 
       setFullData(rows);
       setPreview(rows.slice(0, 6)); // First 6 rows (header + 5 data rows)
@@ -89,7 +101,7 @@ export default function UploadPage() {
 
   const handleImport = async () => {
     if (!fullData.length || !fileName) return;
-    
+
     setImporting(true);
     setError(null);
     try {
@@ -97,12 +109,12 @@ export default function UploadPage() {
       const res = await fetch('/api/csv-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           data: fullData,
-          tableName: tableName
+          tableName: tableName,
         }),
       });
-      
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || 'Import failed');
@@ -120,6 +132,15 @@ export default function UploadPage() {
     }
   };
 
+  if (isMergeMode) {
+    return (
+      <div className="container mx-auto p-8 space-y-8">
+        <h1 className="text-2xl font-bold mb-8">Merge CSV/Excel Files</h1>
+        <MergeFilesUpload onImport={handleImport} />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-8 space-y-8">
       <div className="flex flex-col items-center justify-center space-y-4">
@@ -131,9 +152,12 @@ export default function UploadPage() {
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               <Upload className="w-10 h-10 mb-3 text-gray-400" />
               <p className="mb-2 text-sm text-gray-500">
-                <span className="font-semibold">Click to upload</span> or drag and drop
+                <span className="font-semibold">Click to upload</span> or drag
+                and drop
               </p>
-              <p className="text-xs text-gray-500">CSV or Excel files only (max 2MB)</p>
+              <p className="text-xs text-gray-500">
+                CSV or Excel files only (max 2MB)
+              </p>
             </div>
             <input
               id="file-upload"
@@ -144,11 +168,21 @@ export default function UploadPage() {
             />
           </label>
         </div>
-        
-        {fileName && <p className="text-sm text-gray-500">Selected: {fileName}</p>}
+
+        {fileName && (
+          <p className="text-sm text-gray-500">Selected: {fileName}</p>
+        )}
         {loading && <p className="text-blue-500 text-sm">Reading file...</p>}
-        {importing && <p className="text-blue-500 text-sm">Importing data...</p>}
-        {error && <p className={`text-sm ${error.includes('successful') ? 'text-green-500' : 'text-red-500'}`}>{error}</p>}
+        {importing && (
+          <p className="text-blue-500 text-sm">Importing data...</p>
+        )}
+        {error && (
+          <p
+            className={`text-sm ${error.includes('successful') ? 'text-green-500' : 'text-red-500'}`}
+          >
+            {error}
+          </p>
+        )}
       </div>
 
       {preview.length > 0 && (
@@ -159,7 +193,12 @@ export default function UploadPage() {
               <TableHeader>
                 <TableRow>
                   {preview[0].map((header, index) => (
-                    <TableHead key={index} className="whitespace-nowrap truncate py-2">{header}</TableHead>
+                    <TableHead
+                      key={index}
+                      className="whitespace-nowrap truncate py-2"
+                    >
+                      {header}
+                    </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -167,7 +206,12 @@ export default function UploadPage() {
                 {preview.slice(1).map((row, rowIndex) => (
                   <TableRow key={rowIndex}>
                     {row.map((cell, cellIndex) => (
-                      <TableCell key={cellIndex} className="whitespace-nowrap truncate py-2">{cell}</TableCell>
+                      <TableCell
+                        key={cellIndex}
+                        className="whitespace-nowrap truncate py-2"
+                      >
+                        {cell}
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))}
@@ -175,10 +219,7 @@ export default function UploadPage() {
             </Table>
           </div>
           <div className="flex justify-end">
-            <Button 
-              onClick={handleImport}
-              disabled={importing || loading}
-            >
+            <Button onClick={handleImport} disabled={importing || loading}>
               {importing ? 'Importing...' : 'Import Data'}
             </Button>
           </div>
@@ -186,4 +227,4 @@ export default function UploadPage() {
       )}
     </div>
   );
-} 
+}

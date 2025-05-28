@@ -31,7 +31,7 @@ console.log('Normalized title:', normalizedTitle);
 // First, normalize the title by replacing special characters with spaces
 // but keep forward slashes as they are important for role separation
 const normalizedTitleWithSpaces = normalizedTitle
-  .replace(/[^a-z0-9\s/]/g, ' ') // Replace special characters with spaces, keep forward slashes
+  .replace(/[^a-z0-9üäöß\s/]/g, ' ') // Replace special characters with spaces, keep forward slashes
   .replace(/\s+/g, ' ') // Normalize multiple spaces into single space
   .trim();
 

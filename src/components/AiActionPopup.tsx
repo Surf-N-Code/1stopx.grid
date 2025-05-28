@@ -76,11 +76,23 @@ export function AiActionPopup({
       let successfulJobs = 0;
       const jobPromises = selectedCells.map(async (cell) => {
         // Process prompt with this cell's row data
+        // Replace all placeholders in the prompt with actual values
+        const columnDataForPlaceholders: string[] = [];
+        console.log('promptToUse', promptToUse);
         const processedPrompt = promptToUse.replace(/{{([^}]+)}}/g, (match, column) => {
-          const columnLower = column.trim().toLowerCase().replace(/\\s+/g, ' ');
-          return cell.rowData[columnLower] || match;
+          // Store the placeholder text
+          const placeholderText = match;
+          // Clean up the column name: trim whitespace and convert to lowercase
+          const columnLower = column.trim().toLowerCase();
+          // Get the value from rowData, or keep the original placeholder if not found
+          const value = cell.rowData[columnLower];
+          columnDataForPlaceholders.push(value);
+          return value !== undefined ? value : placeholderText;
         });
 
+        const rowDataForIsManagementCheck = columnDataForPlaceholders.join('\n');
+
+        console.log('rowDataForIsManagementCheck', rowDataForIsManagementCheck);
         try {
           const response = await fetch("/api/jobs", {
             method: "POST",
@@ -89,6 +101,7 @@ export function AiActionPopup({
               cellId: cell.cellId,
               prompt: processedPrompt,
               isManagementDetection: isManagementPrompt,
+              rowDataForIsManagementCheck,
               useWebSearch,
             }),
           });
