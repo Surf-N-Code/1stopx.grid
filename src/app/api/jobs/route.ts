@@ -17,7 +17,7 @@ const anthropic = new Anthropic({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { cellId, prompt, isManagementDetection, useWebSearch } = body;
+    const { cellId, prompt, isManagementDetection, useWebSearch, rowDataForIsManagementCheck } = body;
 
     if (!cellId || !prompt) {
       return NextResponse.json(
@@ -39,8 +39,7 @@ export async function POST(request: Request) {
     try {
       let result = '';
       if (isManagementDetection) {
-        console.log('isManagementDetection:', isManagementDetection);
-        result = isManagementDetection;
+        result = isInManagement(rowDataForIsManagementCheck) ? 'true' : 'false';
       } else {
         // Process with AI
         console.log('Processing with AI:', { prompt, cellId, useWebSearch });
