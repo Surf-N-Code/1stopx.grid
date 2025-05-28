@@ -32,7 +32,12 @@ export async function POST(request: Request) {
       .returning();
 
     try {
-      // Process with AI
+      let result = '';
+      if (isManagementDetection) {
+        console.log('isManagementDetection:', isManagementDetection);
+        result = isManagementDetection;
+      } else {
+        // Process with AI
       console.log('Processing with AI:', { prompt, cellId });
       const completion = await openai.chat.completions.create({
         messages: [
@@ -50,7 +55,8 @@ export async function POST(request: Request) {
 
       const result = completion.choices[0]?.message?.content || '';
       console.log('result', result);
-
+      }
+      
       // Update the job with the result
       const [updatedJob] = await db
         .update(jobs)
@@ -68,7 +74,6 @@ export async function POST(request: Request) {
         .set({
           value: result,
           isAiGenerated: true,
-          isManagement: isManagementDetection ? isInManagement(result) : undefined,
           updatedAt: new Date(),
         })
         .where(eq(cells.id, cellId));

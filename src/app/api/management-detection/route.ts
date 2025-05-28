@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { db } from '@/server/db';
+import { columns } from '@/server/db/schema';
+import { eq } from 'drizzle-orm';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -7,7 +10,7 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    const { prompt } = await request.json();
+    const { prompt, columnId } = await request.json();
 
     if (!prompt) {
       return NextResponse.json(
@@ -38,7 +41,20 @@ Respond with only "true" if the prompt is specifically for management detection,
     });
 
     const result = completion.choices[0]?.message?.content?.toLowerCase().trim();
-    return NextResponse.json({ isManagementDetection: result === "true" });
+    const isManagementDetection = result === "true";
+
+    // If columnId is provided, update the column's isManagement flag
+    if (columnId) {
+      await db
+        .update(columns)
+        .set({
+          isManagement: isManagementDetection,
+          updatedAt: new Date(),
+        })
+        .where(eq(columns.id, columnId));
+    }
+
+    return NextResponse.json({ isManagementDetection });
   } catch (error) {
     console.error('Error detecting management prompt:', error);
     return NextResponse.json(

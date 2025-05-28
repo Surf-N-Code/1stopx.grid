@@ -582,6 +582,7 @@ export function Grid({ dbData: initialDbData, tableId, onColumnsChange }: GridPr
             setLoadingCells(prev => [...prev, { columnId, rowIndex }]);
           }}
           selectedCellsCount={selectedCells.length}
+          onPollJobStatus={pollJobStatus}
         />
       )}
 
