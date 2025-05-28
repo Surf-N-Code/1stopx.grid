@@ -41,6 +41,7 @@ export default function FullTableView() {
   const [projects, setProjects] = React.useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>('');
   const [tableData, setTableData] = React.useState<{
+    tableId: number;
     columns: Column[];
     rows: string[][];
     cellIds: number[][];
@@ -77,6 +78,7 @@ export default function FullTableView() {
       if (!response.ok) throw new Error('Failed to fetch table data');
       const data = await response.json();
       setTableData({
+        tableId: data.id,
         columns: data.columns,
         rows: data.rows,
         cellIds: data.cellIds,
@@ -126,6 +128,7 @@ export default function FullTableView() {
               onSelectColumn={handleCustomColumnSelect}
               currentProjectId={Number(selectedProjectId)}
               onColumnAdded={fetchTableData}
+              targetTableId={tableData?.tableId || 0}
             />
           )}
         </div>

@@ -42,6 +42,7 @@ interface CustomColumnsDropdownProps {
   onSelectColumn?: (column: CustomColumn) => void;
   currentProjectId?: number;
   onColumnAdded?: () => void;
+  targetTableId?: number;
 }
 
 export function CustomColumnsDropdown({
@@ -49,6 +50,7 @@ export function CustomColumnsDropdown({
   onSelectColumn,
   currentProjectId,
   onColumnAdded,
+  targetTableId,
 }: CustomColumnsDropdownProps) {
   const [selectedColumn, setSelectedColumn] =
     React.useState<CustomColumn | null>(null);
@@ -70,9 +72,9 @@ export function CustomColumnsDropdown({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sourceColumnId: column.id,
+          columnId: column.id,
           targetProjectId: currentProjectId,
-          targetTableId: column.tableId,
+          targetTableId: targetTableId,
         }),
       });
 

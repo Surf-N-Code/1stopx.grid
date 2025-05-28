@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/server/db';
-import { columns } from '@/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { columns, cells, tables } from '@/server/db/schema';
+import { eq, sql } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,10 +31,33 @@ export async function POST(req: NextRequest) {
         useWebSearch: sourceColumn[0].useWebSearch,
         source: 'manual',
         projectId: targetProjectId,
-        tableId: targetTableId, // This will be updated by the table component
+        tableId: targetTableId,
         columnId: `${sourceColumn[0].heading}_${Date.now()}`, // Ensure unique columnId
       })
       .returning();
+
+    // Find the highest rowIndex in any column of the target table
+    const result = await db
+      .select({
+        maxRowIndex: sql<number>`MAX(${cells.rowIndex})`,
+      })
+      .from(cells)
+      .innerJoin(columns, eq(columns.id, cells.columnId))
+      .where(eq(columns.tableId, targetTableId));
+
+    const maxRowIndex = result[0]?.maxRowIndex ?? -1;
+
+    // Create empty cells for each row if there are existing rows
+    if (maxRowIndex >= 0) {
+      const cellsToInsert = Array.from({ length: maxRowIndex + 1 }, (_, i) => ({
+        columnId: newColumn.id,
+        rowIndex: i,
+        value: '',
+        isAiGenerated: false,
+      }));
+
+      await db.insert(cells).values(cellsToInsert);
+    }
 
     return NextResponse.json(newColumn);
   } catch (error) {
