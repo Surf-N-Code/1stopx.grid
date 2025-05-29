@@ -66,10 +66,13 @@ export default function FullTableView() {
     fetchProjects();
   }, []);
 
-  const fetchTableData = async () => {
+  const fetchTableData = async (isBulkProcess: boolean = false) => {
     if (!selectedProjectId) return;
 
-    setLoading(true);
+    // Skip loading state for bulk process updates
+    if (!isBulkProcess) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch(
@@ -88,7 +91,9 @@ export default function FullTableView() {
       setError('Failed to load table data');
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!isBulkProcess) {
+        setLoading(false);
+      }
     }
   };
 

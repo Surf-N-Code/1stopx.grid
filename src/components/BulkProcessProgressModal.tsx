@@ -40,7 +40,7 @@ export function BulkProcessProgressModal({
         // If job is completed or failed, stop polling
         if (status.status === 'completed' || status.status === 'failed') {
           clearInterval(pollInterval);
-          // Call onComplete callback if provided
+          // Call onComplete callback if job completed successfully
           if (status.status === 'completed' && onComplete) {
             onComplete();
           }

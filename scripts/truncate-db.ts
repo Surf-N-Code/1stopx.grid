@@ -1,36 +1,30 @@
-import { db, projects, tables, columns, cells } from '@/server/db/schema';
+import { db } from '@/server/db';
 import { sql } from 'drizzle-orm';
 
-async function truncateTables() {
+async function reset() {
+  console.log('🗑️  Truncating all tables...');
+
   try {
-    console.log('Starting database truncation...');
+    // Drop all tables in a transaction
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`
+        DO $$ DECLARE
+          r RECORD;
+        BEGIN
+          FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
+            EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' RESTART IDENTITY CASCADE';
+          END LOOP;
+        END $$;
+      `);
+    });
 
-    // Disable foreign key checks temporarily
-    await db.execute(sql`SET session_replication_role = 'replica';`);
-
-    // Truncate tables in reverse order of dependencies
-    await db.delete(cells);
-    console.log('✓ Truncated cells table');
-
-    await db.delete(columns);
-    console.log('✓ Truncated columns table');
-
-    await db.delete(tables);
-    console.log('✓ Truncated tables table');
-
-    await db.delete(projects);
-    console.log('✓ Truncated projects table');
-
-    // Re-enable foreign key checks
-    await db.execute(sql`SET session_replication_role = 'origin';`);
-
-    console.log('Database truncation completed successfully!');
+    console.log('✅ All tables truncated successfully');
   } catch (error) {
-    console.error('Error truncating database:', error);
+    console.error('❌ Error resetting database:', error);
     process.exit(1);
-  } finally {
-    process.exit(0);
   }
+
+  process.exit(0);
 }
 
-truncateTables(); 
+reset();

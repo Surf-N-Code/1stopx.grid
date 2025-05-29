@@ -123,33 +123,31 @@ export function Grid({
   }, [initialDbData]);
 
   // Initialize visible columns when dbData changes
-  React.useEffect(() => {
-    if (dbData?.columns) {
-      const defaultVisibleColumns = [
-        'first name',
-        'last name',
-        'email',
-        'title',
-        'ismanager',
-        'website',
-        'company',
-        'person linkedin url',
-      ];
-      const visibleColumnIds = dbData.columns
-        .filter((col) =>
-          defaultVisibleColumns.includes(col.heading.toLowerCase())
-        )
-        .map((col) => col.id);
-      setVisibleColumns(visibleColumnIds);
-    }
-  }, [dbData?.columns]);
+  // React.useEffect(() => {
+  //   if (dbData?.columns) {
+  //     const defaultVisibleColumns = [
+  //       'first name',
+  //       'last name',
+  //       'email',
+  //       'title',
+  //       'ismanager',
+  //       'website',
+  //       'company',
+  //       'person linkedin url',
+  //     ];
+  //     const visibleColumnIds = dbData.columns
+  //       .filter((col) =>
+  //         defaultVisibleColumns.includes(col.heading.toLowerCase())
+  //       )
+  //       .map((col) => col.id);
+  //     setVisibleColumns(visibleColumnIds);
+  //   }
+  // }, [dbData?.columns]);
 
   React.useEffect(() => {
-    console.log('selectedCell', selectedCell);
     const useWebSearch = selectedCell
       ? dbData?.columns.find((col) => col.id === selectedCell.columnId)
       : false;
-    console.log('useWebSearch', useWebSearch);
   }, [selectedCell]);
 
   const handleAddColumn = async (data: {
@@ -309,23 +307,28 @@ export function Grid({
     columnId: number,
     rowIndex: number
   ) => {
-    // Update the cell in the UI immediately
-    setDbData((prev) => {
-      if (!prev) return prev;
+    // Only update the UI if this is not part of a bulk process
+    if (!bulkJobId) {
+      // Update the cell in the UI immediately
+      setDbData((prev) => {
+        if (!prev) return prev;
 
-      const newRows = [...prev.rows];
-      const originalColIndex = prev.columns.findIndex((c) => c.id === columnId);
-      if (originalColIndex === -1) return prev;
+        const newRows = [...prev.rows];
+        const originalColIndex = prev.columns.findIndex(
+          (c) => c.id === columnId
+        );
+        if (originalColIndex === -1) return prev;
 
-      // Create a new row array to ensure React detects the change
-      newRows[rowIndex] = [...newRows[rowIndex]];
-      newRows[rowIndex][originalColIndex] = value;
+        // Create a new row array to ensure React detects the change
+        newRows[rowIndex] = [...newRows[rowIndex]];
+        newRows[rowIndex][originalColIndex] = value;
 
-      return {
-        ...prev,
-        rows: newRows,
-      };
-    });
+        return {
+          ...prev,
+          rows: newRows,
+        };
+      });
+    }
 
     // Remove the loading state for this cell
     setLoadingCells((prev) =>
@@ -351,27 +354,39 @@ export function Grid({
   const handleConfirmColumnAi = async () => {
     if (!columnAiConfirm || !dbData) return;
 
-    const column = dbData.columns.find(
+    // Create a local copy of the data to prevent re-renders
+    const localData = {
+      columns: [...dbData.columns],
+      rows: dbData.rows.map((row) => [...row]),
+      cellIds: dbData.cellIds.map((row) => [...row]),
+    };
+
+    const column = localData.columns.find(
       (col) => col.id === columnAiConfirm.columnId
     );
     if (!column?.aiPrompt) return;
 
-    const originalColIndex = dbData.columns.findIndex(
+    const originalColIndex = localData.columns.findIndex(
       (c) => c.id === columnAiConfirm.columnId
     );
     const isManagementPrompt = await isManagementDetectionPrompt(
       column.aiPrompt
     );
 
-    // Determine which rows to process based on user selection
-    const rowsToProcess = columnAiConfirm.runOnAllPages
-      ? dbData.rows
-      : dbData.rows.slice(startIndex, endIndex);
+    // Calculate pagination values
+    const totalRows = localData.rows.length;
+    const totalPages = Math.ceil(totalRows / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalRows);
 
-    const cellsToProcess = rowsToProcess.map((row, rowIndex) => {
+    const cellsToProcess = (
+      columnAiConfirm.runOnAllPages
+        ? localData.rows
+        : localData.rows.slice(startIndex, endIndex)
+    ).map((row, rowIndex) => {
       // Create a map of column headings to values for this row
       const rowData = Object.fromEntries(
-        dbData.columns.map((col, index) => [
+        localData.columns.map((col, index) => [
           col.heading.toLowerCase(),
           row[index],
         ])
@@ -401,7 +416,7 @@ export function Grid({
         : startIndex + rowIndex;
 
       return {
-        cellId: dbData.cellIds[actualRowIndex][originalColIndex],
+        cellId: localData.cellIds[actualRowIndex][originalColIndex],
         rowIndex: actualRowIndex,
         columnId: columnAiConfirm.columnId,
         prompt: processedPrompt,
@@ -410,8 +425,12 @@ export function Grid({
     });
 
     try {
-      // Show the progress modal immediately
-      setShowBulkModal(true);
+      // Batch state updates to minimize re-renders
+      const updates = () => {
+        setShowBulkModal(true);
+        setColumnAiConfirm(null);
+      };
+      updates();
 
       // Show toast notification
       toast.loading('Starting bulk AI processing...', {
@@ -456,9 +475,6 @@ export function Grid({
       // Close the progress modal if there's an error
       setShowBulkModal(false);
     }
-
-    // Close the confirmation dialog
-    setColumnAiConfirm(null);
   };
 
   const pollJobStatus = async (
@@ -966,7 +982,12 @@ export function Grid({
           jobId={bulkJobId}
           isOpen={showBulkModal}
           onClose={() => setShowBulkModal(false)}
-          onComplete={onColumnsChange}
+          onComplete={() => {
+            // Only refresh if there were structural changes to the columns
+            if (columnAiConfirm?.runOnAllPages) {
+              onColumnsChange?.();
+            }
+          }}
         />
       )}
     </div>
