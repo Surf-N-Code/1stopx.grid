@@ -1,0 +1,1 @@
+ALTER TABLE "columns" ADD COLUMN "script_required_fields" text;

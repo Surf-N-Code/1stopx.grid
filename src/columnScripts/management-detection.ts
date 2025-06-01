@@ -1,3 +1,12 @@
+export const metadata = {
+  id: 'management-detection',
+  title: 'Management Detection',
+  description: `This script defines a list of management-related keywords and variations used to identify management roles or titles. It includes common titles such as CEO, Founder, Managing Director, and various board and executive positions. These keywords are utilized to detect and categorize management roles within a given context.`,
+  requiredColumns: [
+    { content: 'occupation', description: 'job title or occupation' },
+  ],
+};
+
 export const MANAGEMENT_KEYWORDS: string[] = [
   // General
   'CEO',

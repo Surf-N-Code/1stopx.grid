@@ -7,7 +7,7 @@ export async function GET(
   req: Request,
   { params }: { params: { jobId: string } }
 ) {
-  const jobId = Number(params.jobId);
+  const { jobId } = await params;
   if (!jobId) {
     return NextResponse.json({ error: 'Invalid jobId' }, { status: 400 });
   }

@@ -1,9 +1,24 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { pgTable, serial, varchar, timestamp, integer, boolean, pgEnum, text } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  serial,
+  varchar,
+  timestamp,
+  integer,
+  boolean,
+  pgEnum,
+  text,
+} from 'drizzle-orm/pg-core';
 import { Pool } from 'pg';
 
 // Enum for column data types
-export const dataTypeEnum = pgEnum('data_type', ['text', 'number', 'email', 'url', 'boolean']);
+export const dataTypeEnum = pgEnum('data_type', [
+  'text',
+  'number',
+  'email',
+  'url',
+  'boolean',
+]);
 export type DataType = 'text' | 'number' | 'email' | 'url' | 'boolean';
 
 // Enum for column source
@@ -21,7 +36,10 @@ export const projects = pgTable('projects', {
 // Tables table (1:1 with projects)
 export const tables = pgTable('tables', {
   id: serial('id').primaryKey(),
-  projectId: integer('project_id').notNull().unique().references(() => projects.id),
+  projectId: integer('project_id')
+    .notNull()
+    .unique()
+    .references(() => projects.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -29,8 +47,12 @@ export const tables = pgTable('tables', {
 // Columns table
 export const columns = pgTable('columns', {
   id: serial('id').primaryKey(),
-  tableId: integer('table_id').notNull().references(() => tables.id),
-  projectId: integer('project_id').notNull().references(() => projects.id),
+  tableId: integer('table_id')
+    .notNull()
+    .references(() => tables.id),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projects.id),
   heading: varchar('heading', { length: 255 }).notNull(),
   columnId: varchar('column_id', { length: 512 }).notNull(),
   dataType: dataTypeEnum('data_type').notNull().default('text'),
@@ -38,6 +60,8 @@ export const columns = pgTable('columns', {
   source: sourceTypeEnum('source').notNull().default('manual'),
   isManagement: boolean('is_management').default(false).notNull(),
   useWebSearch: boolean('use_web_search').default(false).notNull(),
+  scriptToPopulate: varchar('script_to_populate', { length: 255 }), // optional, stores script ID
+  scriptRequiredFields: text('script_required_fields'), // optional, stores required fields as JSON array of {field: string, description: string}
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -45,9 +69,11 @@ export const columns = pgTable('columns', {
 // Cells table
 export const cells = pgTable('cells', {
   id: serial('id').primaryKey(),
-  columnId: integer('column_id').notNull().references(() => columns.id),
+  columnId: integer('column_id')
+    .notNull()
+    .references(() => columns.id),
   rowIndex: integer('row_index').notNull(),
-  value: varchar('value', { length: 2048 }),
+  value: text('value'),
   isAiGenerated: boolean('is_ai_generated').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -56,7 +82,9 @@ export const cells = pgTable('cells', {
 // Jobs table
 export const jobs = pgTable('jobs', {
   id: serial('id').primaryKey(),
-  cellId: integer('cell_id').notNull().references(() => cells.id),
+  cellId: integer('cell_id')
+    .notNull()
+    .references(() => cells.id),
   prompt: text('prompt').notNull(),
   result: text('result'),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
@@ -68,7 +96,9 @@ export const jobs = pgTable('jobs', {
 // Bulk Jobs table
 export const bulkJobs = pgTable('bulk_jobs', {
   id: serial('id').primaryKey(),
-  columnId: integer('column_id').notNull().references(() => columns.id),
+  columnId: integer('column_id')
+    .notNull()
+    .references(() => columns.id),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   totalCells: integer('total_cells').notNull(),
   processedCells: integer('processed_cells').notNull().default(0),
@@ -82,8 +112,12 @@ export const bulkJobs = pgTable('bulk_jobs', {
 // Bulk Job Cells table to track individual cells in a bulk job
 export const bulkJobCells = pgTable('bulk_job_cells', {
   id: serial('id').primaryKey(),
-  bulkJobId: integer('bulk_job_id').notNull().references(() => bulkJobs.id),
-  cellId: integer('cell_id').notNull().references(() => cells.id),
+  bulkJobId: integer('bulk_job_id')
+    .notNull()
+    .references(() => bulkJobs.id),
+  cellId: integer('cell_id')
+    .notNull()
+    .references(() => cells.id),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   result: text('result'),
   error: text('error'),
@@ -96,4 +130,4 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-export const db = drizzle(pool); 
+export const db = drizzle(pool);

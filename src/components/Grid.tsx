@@ -48,9 +48,10 @@ import {
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { isManagementDetectionPrompt } from '@/lib/utils/management-detection';
+import { isManagementDetectionPrompt } from '@/columnScripts/management-detection';
 import { toast } from 'react-hot-toast';
 import { BulkProcessProgressModal } from './BulkProcessProgressModal';
+import { getColumnScriptById } from '@/lib/utils/column-scripts';
 
 interface Column {
   id: number;
@@ -59,6 +60,8 @@ interface Column {
   aiPrompt?: string;
   isManagement?: boolean;
   useWebSearch?: boolean;
+  scriptToPopulate?: string;
+  scriptRequiredColumns?: Record<string, number>;
 }
 
 interface GridProps {
@@ -340,14 +343,14 @@ export function Grid({
 
   const handleRunAiOnColumn = async (columnId: number) => {
     const column = dbData?.columns.find((col) => col.id === columnId);
-    if (!column?.aiPrompt) return;
+    if (!column) return;
 
     // Show confirmation dialog first
     setColumnAiConfirm({
       columnId,
       heading: column.heading,
       rowCount: dbData?.rows.length || 0,
-      runOnAllPages: undefined, // Will be set by user in dialog
+      runOnAllPages: undefined,
     });
   };
 
@@ -364,65 +367,20 @@ export function Grid({
     const column = localData.columns.find(
       (col) => col.id === columnAiConfirm.columnId
     );
-    if (!column?.aiPrompt) return;
+    if (!column) return;
 
     const originalColIndex = localData.columns.findIndex(
       (c) => c.id === columnAiConfirm.columnId
     );
-    const isManagementPrompt = await isManagementDetectionPrompt(
-      column.aiPrompt
-    );
 
     // Calculate pagination values
     const totalRows = localData.rows.length;
-    const totalPages = Math.ceil(totalRows / pageSize);
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = Math.min(startIndex + pageSize, totalRows);
 
-    const cellsToProcess = (
-      columnAiConfirm.runOnAllPages
-        ? localData.rows
-        : localData.rows.slice(startIndex, endIndex)
-    ).map((row, rowIndex) => {
-      // Create a map of column headings to values for this row
-      const rowData = Object.fromEntries(
-        localData.columns.map((col, index) => [
-          col.heading.toLowerCase(),
-          row[index],
-        ])
-      );
-
-      // Replace placeholders in the prompt with actual values
-      const columnDataForPlaceholders: string[] = [];
-      const processedPrompt = column.aiPrompt!.replace(
-        /{{([^}]+)}}/g,
-        (match, column) => {
-          // Store the placeholder text
-          const placeholderText = match;
-          // Clean up the column name: trim whitespace and convert to lowercase
-          const columnLower = column.trim().toLowerCase();
-          // Get the value from rowData, or keep the original placeholder if not found
-          const value = rowData[columnLower];
-          columnDataForPlaceholders.push(value);
-          return value !== undefined ? value : placeholderText;
-        }
-      );
-
-      const rowDataForIsManagementCheck = columnDataForPlaceholders.join('\n');
-
-      // Calculate the actual row index in the full dataset
-      const actualRowIndex = columnAiConfirm.runOnAllPages
-        ? rowIndex
-        : startIndex + rowIndex;
-
-      return {
-        cellId: localData.cellIds[actualRowIndex][originalColIndex],
-        rowIndex: actualRowIndex,
-        columnId: columnAiConfirm.columnId,
-        prompt: processedPrompt,
-        rowDataForIsManagementCheck,
-      };
-    });
+    const rowsToProcess = columnAiConfirm.runOnAllPages
+      ? localData.rows
+      : localData.rows.slice(startIndex, endIndex);
 
     try {
       // Batch state updates to minimize re-renders
@@ -433,8 +391,33 @@ export function Grid({
       updates();
 
       // Show toast notification
-      toast.loading('Starting bulk AI processing...', {
+      toast.loading('Starting bulk processing...', {
         id: 'bulk-processing',
+      });
+
+      const cellsToProcess = rowsToProcess.map((row, rowIndex) => {
+        // Create a map of column headings to values for this row
+        const rowData = Object.fromEntries(
+          localData.columns.map((col, index) => [
+            col.heading.toLowerCase(),
+            row[index],
+          ])
+        );
+
+        // Calculate the actual row index in the full dataset
+        const actualRowIndex = columnAiConfirm.runOnAllPages
+          ? rowIndex
+          : startIndex + rowIndex;
+
+        return {
+          cellId: localData.cellIds[actualRowIndex][originalColIndex],
+          rowIndex: actualRowIndex,
+          columnId: columnAiConfirm.columnId,
+          prompt: column.aiPrompt || '',
+          rowDataForIsManagementCheck:
+            rowData[column.heading.toLowerCase()] || '',
+          rowData,
+        };
       });
 
       const response = await fetch('/api/jobs/bulk', {
@@ -443,7 +426,7 @@ export function Grid({
         body: JSON.stringify({
           cellsToProcess,
           columnId: columnAiConfirm.columnId,
-          isManagementPrompt,
+          isManagementPrompt: column.isManagement,
           useWebSearch: column.useWebSearch,
           userEmail: 'grid@1stopx.com',
         }),
@@ -638,7 +621,7 @@ export function Grid({
                           )}
                         </span>
                         <div className="flex items-center gap-1">
-                          {column.aiPrompt && (
+                          {(column.aiPrompt || column.scriptToPopulate) && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -839,6 +822,10 @@ export function Grid({
           useWebSearch={
             dbData?.columns.find((col) => col.id === selectedCell.columnId)
               ?.useWebSearch
+          }
+          scriptToPopulate={
+            dbData?.columns.find((col) => col.id === selectedCell.columnId)
+              ?.scriptToPopulate
           }
         />
       )}

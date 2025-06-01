@@ -1,0 +1,1 @@
+ALTER TABLE "columns" ADD COLUMN "script_to_populate" varchar(255);

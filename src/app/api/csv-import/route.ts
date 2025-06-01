@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, projects, tables, columns, cells, dataTypeEnum, sourceTypeEnum } from '@/server/db/schema';
+import {
+  db,
+  projects,
+  tables,
+  columns,
+  cells,
+  dataTypeEnum,
+  sourceTypeEnum,
+} from '@/server/db/schema';
 
 const BATCH_SIZE = 1000; // Process 1000 cells at a time
 const MAX_CELL_LENGTH = 2048; // Maximum length for cell values
@@ -9,29 +17,42 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { data } = body;
     if (!Array.isArray(data) || !Array.isArray(data[0])) {
-      return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid data format' },
+        { status: 400 }
+      );
     }
 
     // 1. Create a new project
-    const projectRes = await db.insert(projects).values({ name: `CSV Import ${Date.now()}` }).returning({ id: projects.id });
+    const projectRes = await db
+      .insert(projects)
+      .values({ name: `CSV Import ${Date.now()}` })
+      .returning({ id: projects.id });
     const projectId = projectRes[0].id;
 
     // 2. Create a new table for this project
-    const tableRes = await db.insert(tables).values({ projectId }).returning({ id: tables.id });
+    const tableRes = await db
+      .insert(tables)
+      .values({ projectId })
+      .returning({ id: tables.id });
     const tableId = tableRes[0].id;
 
     // 3. Create columns (all as 'text' type for now)
     const headerRow = data[0];
-    const columnRes = await db.insert(columns).values(
-      headerRow.map((heading: string) => ({
-        tableId,
-        projectId,
-        columnId: `${projectId}_${heading.toLowerCase().replace(/\s+/g, '_')}`,
-        heading,
-        dataType: 'text' as typeof dataTypeEnum.enumValues[0],
-        source: 'imported' as typeof sourceTypeEnum.enumValues[1],
-      }))
-    ).returning({ id: columns.id });
+    const columnRes = await db
+      .insert(columns)
+      .values(
+        headerRow.map((heading: string) => ({
+          tableId,
+          projectId,
+          columnId: `${projectId}_${heading.toLowerCase().replace(/\s+/g, '_')}`,
+          heading,
+          dataType: 'text' as (typeof dataTypeEnum.enumValues)[0],
+          source: 'imported' as (typeof sourceTypeEnum.enumValues)[1],
+          scriptToPopulate: null,
+        }))
+      )
+      .returning({ id: columns.id });
     const columnIds = columnRes.map((col) => col.id);
 
     // 4. Create cells in batches
@@ -43,7 +64,10 @@ export async function POST(req: NextRequest) {
         cellInserts.push({
           columnId: columnIds[colIndex],
           rowIndex,
-          value: value.length > MAX_CELL_LENGTH ? value.substring(0, MAX_CELL_LENGTH) : value,
+          value:
+            value.length > MAX_CELL_LENGTH
+              ? value.substring(0, MAX_CELL_LENGTH)
+              : value,
           isAiGenerated: false,
         });
       }
@@ -63,6 +87,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error importing CSV:', error);
-    return NextResponse.json({ error: 'Failed to import CSV' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to import CSV' },
+      { status: 500 }
+    );
   }
-} 
+}

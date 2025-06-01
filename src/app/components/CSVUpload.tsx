@@ -4,7 +4,14 @@ import * as React from 'react';
 import { useState } from 'react';
 // If not generated, run: npx shadcn-ui@latest add button
 import { Button } from '@/components/ui/button';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table';
 import * as XLSX from 'xlsx';
 
 interface CSVUploadProps {
@@ -14,16 +21,51 @@ interface CSVUploadProps {
 const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 
 function parseCSV(text: string): string[][] {
+  // First detect the delimiter by analyzing the first few lines
+  const firstFewLines = text.split(/\r?\n/).slice(0, 5);
+  const commaCount = firstFewLines.reduce(
+    (count, l) => count + (l.match(/,/g) || []).length,
+    0
+  );
+  const semicolonCount = firstFewLines.reduce(
+    (count, l) => count + (l.match(/;/g) || []).length,
+    0
+  );
+  const delimiter = semicolonCount > commaCount ? ';' : ',';
+  console.log('delimiter', delimiter);
+
   // Split by both \r\n and \n to handle different newline formats
-  const rows = text.split(/\r?\n/).map(line => {
-    // Split by semicolon and trim each cell
-    return line.split(';').map(cell => cell.trim());
+  const rows = text.split(/\r?\n/).map((line) => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          // Handle escaped quotes
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    // Add the last field
+    result.push(current.trim());
+    return result;
   });
-  
-  // Heuristic: all rows have same length and at least 2 columns
-  const colCount = rows[0]?.length || 0;
-  
-  return rows;
+
+  // Filter out empty rows
+  return rows.filter((row) => row.some((cell) => cell.length > 0));
 }
 
 function parseExcel(file: File): Promise<string[][]> {
@@ -35,7 +77,9 @@ function parseExcel(file: File): Promise<string[][]> {
         const workbook = XLSX.read(data, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+        }) as string[][];
         resolve(jsonData);
       } catch (error) {
         reject(error);
@@ -61,7 +105,7 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
     setFileName(file.name);
     try {
       let data: string[][];
-      
+
       if (file.name.endsWith('.xlsx')) {
         data = await parseExcel(file);
       } else {
@@ -115,9 +159,9 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
       const res = await fetch('/api/csv-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           data: fullData,
-          tableName: tableName
+          tableName: tableName,
         }),
       });
       const result = await res.json();
@@ -146,11 +190,17 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
           disabled={loading || importing}
         />
       </label>
-      {fileName && <span className="text-xs text-gray-500">Selected: {fileName}</span>}
+      {fileName && (
+        <span className="text-xs text-gray-500">Selected: {fileName}</span>
+      )}
       {error && <div className="text-red-600 text-sm">{error}</div>}
       {loading && <div className="text-blue-600 text-sm">Parsing file...</div>}
-      {importing && <div className="text-blue-600 text-sm">Importing to database...</div>}
-      {importSuccess && <div className="text-green-600 text-sm">Import successful!</div>}
+      {importing && (
+        <div className="text-blue-600 text-sm">Importing to database...</div>
+      )}
+      {importSuccess && (
+        <div className="text-green-600 text-sm">Import successful!</div>
+      )}
       {preview && (
         <div>
           <div className="font-semibold mb-2">Preview (first 5 rows):</div>
@@ -183,4 +233,4 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({ onImport }) => {
       )}
     </div>
   );
-}; 
+};

@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
         dataType: sourceColumn[0].dataType,
         aiPrompt: sourceColumn[0].aiPrompt,
         useWebSearch: sourceColumn[0].useWebSearch,
+        scriptToPopulate: sourceColumn[0].scriptToPopulate,
         source: 'manual',
         projectId: targetProjectId,
         tableId: targetTableId,

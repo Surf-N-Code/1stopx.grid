@@ -1,17 +1,29 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/server/db';
-import { bulkJobs, bulkJobCells, cells } from '@/server/db/schema';
+import { bulkJobs, bulkJobCells, cells, columns } from '@/server/db/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import { sendEmailNotification } from '@/lib/utils/email';
-import { isInManagement } from '@/lib/utils/management-detection';
+import { isInManagement } from '@/columnScripts/management-detection';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import { getColumnScriptById } from '@/lib/utils/column-scripts';
+
+interface RequiredField {
+  field: string;
+  description: string;
+}
 
 interface CellToProcess {
   cellId: number;
   prompt: string;
   rowDataForIsManagementCheck: string;
+  rowData: Record<string, string>;
 }
+
+// Extend the column type to include scriptRequiredFields
+type ColumnWithScript = typeof columns.$inferSelect & {
+  scriptRequiredFields?: string;
+};
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -79,6 +91,7 @@ export async function POST(request: Request) {
     // Process jobs in the background
     processBulkJob(
       bulkJob.id,
+      columnId,
       cellsToProcess,
       userEmail,
       isManagementPrompt,
@@ -101,15 +114,29 @@ export async function POST(request: Request) {
 
 async function processBulkJob(
   bulkJobId: number,
+  columnId: number,
   cellsToProcess: CellToProcess[],
   userEmail: string,
   isManagementPrompt: boolean,
   useWebSearch: boolean
 ) {
   try {
+    // Get column information
+    const [column] = await db
+      .select()
+      .from(columns)
+      .where(eq(columns.id, columnId));
+
+    if (!column) {
+      throw new Error('Column not found');
+    }
+
+    // Cast column to include scriptRequiredFields
+    const columnWithScript = column as ColumnWithScript;
+
     const results = await Promise.all(
       cellsToProcess.map(
-        async ({ cellId, prompt, rowDataForIsManagementCheck }) => {
+        async ({ cellId, prompt, rowDataForIsManagementCheck, rowData }) => {
           try {
             // Get the cell data
             const [cell] = await db
@@ -123,7 +150,45 @@ async function processBulkJob(
 
             // Process the cell
             let result = '';
-            if (isManagementPrompt) {
+
+            // If column has a script to execute
+            if (columnWithScript.scriptToPopulate) {
+              const script = getColumnScriptById(
+                columnWithScript.scriptToPopulate
+              );
+              if (!script) {
+                throw new Error(
+                  `Script ${columnWithScript.scriptToPopulate} not found`
+                );
+              }
+
+              // Parse required fields from JSON
+              let requiredFields: RequiredField[] = [];
+              if (columnWithScript.scriptRequiredFields) {
+                try {
+                  requiredFields = JSON.parse(
+                    columnWithScript.scriptRequiredFields
+                  );
+                } catch (error) {
+                  console.error('Error parsing script required fields:', error);
+                  throw new Error('Invalid script required fields format');
+                }
+              }
+
+              // Get values from required fields
+              const inputValues = requiredFields.map(({ field }) => {
+                const value = rowData[field.toLowerCase()];
+                return value || '';
+              });
+
+              // Join values with spaces, or use the column's own value if no required fields
+              const inputValue =
+                inputValues.length > 0
+                  ? inputValues.join(' ')
+                  : rowData[columnWithScript.heading.toLowerCase()] || '';
+
+              result = await script.execute(inputValue, rowData);
+            } else if (isManagementPrompt) {
               result = isInManagement(rowDataForIsManagementCheck)
                 ? 'true'
                 : 'false';

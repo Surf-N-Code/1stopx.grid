@@ -6,7 +6,16 @@ import { eq, and, sql } from 'drizzle-orm';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { tableId, heading, dataType, aiPrompt, source = 'manual', useWebSearch = false } = body;
+    const {
+      tableId,
+      heading,
+      dataType,
+      aiPrompt,
+      source = 'manual',
+      useWebSearch = false,
+      scriptToPopulate,
+      scriptRequiredFields,
+    } = body;
 
     if (!tableId || !heading || !dataType) {
       return NextResponse.json(
@@ -22,10 +31,7 @@ export async function POST(req: NextRequest) {
       .where(eq(tables.id, tableId));
 
     if (!table) {
-      return NextResponse.json(
-        { error: 'Table not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Table not found' }, { status: 404 });
     }
 
     // Create the column ID from project ID and lowercase heading
@@ -43,13 +49,15 @@ export async function POST(req: NextRequest) {
         aiPrompt: aiPrompt || null,
         source,
         useWebSearch,
+        scriptToPopulate: scriptToPopulate || null,
+        scriptRequiredFields: scriptRequiredFields || null,
       })
       .returning();
 
     // Find the highest rowIndex in any column of this table
     const result = await db
       .select({
-        maxRowIndex: sql<number>`MAX(${cells.rowIndex})`
+        maxRowIndex: sql<number>`MAX(${cells.rowIndex})`,
       })
       .from(cells)
       .innerJoin(columns, eq(columns.id, cells.columnId))

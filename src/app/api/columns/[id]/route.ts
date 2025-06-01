@@ -9,7 +9,14 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const { heading, dataType, aiPrompt, source, useWebSearch } = body;
+    const {
+      heading,
+      dataType,
+      aiPrompt,
+      source,
+      useWebSearch,
+      scriptToPopulate,
+    } = body;
     const columnId = Number(params.id);
 
     if (!heading || !dataType) {
@@ -26,10 +33,7 @@ export async function PUT(
       .where(eq(columns.id, columnId));
 
     if (!currentColumn) {
-      return NextResponse.json(
-        { error: 'Column not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Column not found' }, { status: 404 });
     }
 
     // Create the new column ID from project ID and lowercase heading
@@ -44,16 +48,14 @@ export async function PUT(
         aiPrompt: aiPrompt || null,
         source: source || 'manual',
         useWebSearch: useWebSearch ?? false,
+        scriptToPopulate: scriptToPopulate || null,
         updatedAt: new Date(),
       })
       .where(eq(columns.id, columnId))
       .returning();
 
     if (!updatedColumn) {
-      return NextResponse.json(
-        { error: 'Column not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Column not found' }, { status: 404 });
     }
 
     return NextResponse.json(updatedColumn);
@@ -72,7 +74,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const columnId = Number(params.id);
+    const columnId = await params.id;
 
     // First delete all cells in this column
     await db.delete(cells).where(eq(cells.columnId, columnId));
@@ -84,10 +86,7 @@ export async function DELETE(
       .returning();
 
     if (!deletedColumn) {
-      return NextResponse.json(
-        { error: 'Column not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Column not found' }, { status: 404 });
     }
 
     return NextResponse.json(deletedColumn);
@@ -98,4 +97,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

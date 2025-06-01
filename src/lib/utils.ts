@@ -11,10 +11,10 @@ export function convertToCSV(
   rows: string[][]
 ): string {
   // Create header row with column headings
-  const headerRow = columns.map((col) => col.heading).join(';');
+  const headerRow = columns.map((col) => col.heading).join(',');
 
   // Convert each row to CSV format
-  const csvRows = rows.map((row) => row.join(';'));
+  const csvRows = rows.map((row) => row.join(','));
 
   // Combine header and rows
   return [headerRow, ...csvRows].join('\n');

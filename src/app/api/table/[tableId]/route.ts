@@ -67,6 +67,7 @@ export async function GET(
         dataType: columns.dataType,
         aiPrompt: columns.aiPrompt,
         useWebSearch: columns.useWebSearch,
+        scriptToPopulate: columns.scriptToPopulate,
       })
       .from(columns)
       .where(eq(columns.tableId, finalTableId))
