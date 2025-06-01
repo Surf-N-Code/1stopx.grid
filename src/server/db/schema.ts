@@ -39,7 +39,7 @@ export const tables = pgTable('tables', {
   projectId: integer('project_id')
     .notNull()
     .unique()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -49,10 +49,10 @@ export const columns = pgTable('columns', {
   id: serial('id').primaryKey(),
   tableId: integer('table_id')
     .notNull()
-    .references(() => tables.id),
+    .references(() => tables.id, { onDelete: 'cascade' }),
   projectId: integer('project_id')
     .notNull()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: 'cascade' }),
   heading: varchar('heading', { length: 255 }).notNull(),
   columnId: varchar('column_id', { length: 512 }).notNull(),
   dataType: dataTypeEnum('data_type').notNull().default('text'),
@@ -71,7 +71,7 @@ export const cells = pgTable('cells', {
   id: serial('id').primaryKey(),
   columnId: integer('column_id')
     .notNull()
-    .references(() => columns.id),
+    .references(() => columns.id, { onDelete: 'cascade' }),
   rowIndex: integer('row_index').notNull(),
   value: text('value'),
   isAiGenerated: boolean('is_ai_generated').default(false).notNull(),
@@ -84,7 +84,7 @@ export const jobs = pgTable('jobs', {
   id: serial('id').primaryKey(),
   cellId: integer('cell_id')
     .notNull()
-    .references(() => cells.id),
+    .references(() => cells.id, { onDelete: 'cascade' }),
   prompt: text('prompt').notNull(),
   result: text('result'),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
@@ -98,7 +98,7 @@ export const bulkJobs = pgTable('bulk_jobs', {
   id: serial('id').primaryKey(),
   columnId: integer('column_id')
     .notNull()
-    .references(() => columns.id),
+    .references(() => columns.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   totalCells: integer('total_cells').notNull(),
   processedCells: integer('processed_cells').notNull().default(0),
@@ -114,10 +114,10 @@ export const bulkJobCells = pgTable('bulk_job_cells', {
   id: serial('id').primaryKey(),
   bulkJobId: integer('bulk_job_id')
     .notNull()
-    .references(() => bulkJobs.id),
+    .references(() => bulkJobs.id, { onDelete: 'cascade' }),
   cellId: integer('cell_id')
     .notNull()
-    .references(() => cells.id),
+    .references(() => cells.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   result: text('result'),
   error: text('error'),

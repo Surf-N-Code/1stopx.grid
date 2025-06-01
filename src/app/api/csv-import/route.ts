@@ -15,7 +15,7 @@ const MAX_CELL_LENGTH = 2048; // Maximum length for cell values
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { data } = body;
+    const { data, tableName } = body;
     if (!Array.isArray(data) || !Array.isArray(data[0])) {
       return NextResponse.json(
         { error: 'Invalid data format' },
@@ -24,9 +24,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Create a new project
+    const projectName = tableName ? tableName : `CSV Import ${Date.now()}`;
     const projectRes = await db
       .insert(projects)
-      .values({ name: `CSV Import ${Date.now()}` })
+      .values({ name: projectName })
       .returning({ id: projects.id });
     const projectId = projectRes[0].id;
 
