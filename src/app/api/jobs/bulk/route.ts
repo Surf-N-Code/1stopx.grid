@@ -193,15 +193,25 @@ async function processBulkJob(
                 ? 'true'
                 : 'false';
             } else {
+              const processedPrompt = prompt.replace(
+                /{{([^}]+)}}/g,
+                (match, column) => {
+                  const placeholderText = match;
+                  const columnLower = column.trim().toLowerCase();
+                  const value = rowData[columnLower];
+                  return value !== undefined ? value : placeholderText;
+                }
+              );
+              console.log('processedPrompt', processedPrompt);
               // Use OpenAI or Claude based on useWebSearch
               if (useWebSearch) {
                 const response = await anthropic.messages.create({
                   model: 'claude-3-7-sonnet-latest',
-                  max_tokens: 1024,
+                  max_tokens: 2048,
                   messages: [
                     {
                       role: 'user',
-                      content: prompt,
+                      content: processedPrompt,
                     },
                   ],
                   tools: [
@@ -226,7 +236,7 @@ async function processBulkJob(
                     },
                     {
                       role: 'user',
-                      content: prompt,
+                      content: processedPrompt,
                     },
                   ],
                   model: 'gpt-4.1',
